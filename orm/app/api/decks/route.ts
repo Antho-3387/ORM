@@ -9,10 +9,8 @@ export async function GET(request: NextRequest) {
     const userId = request.headers.get('x-user-id')
 
     if (!userId) {
-      return NextResponse.json(
-        { error: 'Non authentifié' },
-        { status: 401 }
-      )
+      // Si pas d'authentification, retourne une liste vide au lieu d'une erreur
+      return NextResponse.json([])
     }
 
     const decks = await prisma.deck.findMany({
