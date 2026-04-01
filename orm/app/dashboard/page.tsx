@@ -7,7 +7,7 @@ export default function DashboardRedirect() {
   const router = useRouter()
 
   useEffect(() => {
-    router.push('/decks')
+    router.push('/')
   }, [router])
 
   return null
