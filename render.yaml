@@ -3,8 +3,8 @@ services:
     name: magic-decks-app
     runtime: node
     plan: free
-    buildCommand: npm run build
-    startCommand: npm start
+    buildCommand: cd orm && npm install && npm run build
+    startCommand: cd orm && npm start
     envVars:
       - key: NODE_ENV
         value: production
