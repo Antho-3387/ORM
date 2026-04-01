@@ -4,8 +4,8 @@ import Link from 'next/link'
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center px-4 py-8">
-      <div className="text-center max-w-3xl mx-auto">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center w-full">
+      <div className="w-full max-w-5xl mx-auto text-center px-4 py-8">
         <div className="mb-8">
           <div className="inline-block mb-6">
             <span className="text-6xl md:text-8xl">🂡</span>
@@ -36,7 +36,7 @@ export default function HomePage() {
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-16">
+        <div className="w-full grid grid-cols-1 md:grid-cols-3 gap-6 mt-16 max-w-4xl mx-auto">
           <div className="bg-slate-800/50 backdrop-blur border border-slate-700 rounded-lg p-6 hover:bg-slate-800/70 transition">
             <div className="text-3xl mb-3">🎴</div>
             <h3 className="text-lg font-bold text-white mb-2">Build Decks</h3>

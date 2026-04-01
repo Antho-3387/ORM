@@ -57,8 +57,9 @@ export default function DecksPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-900 to-slate-950">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
+    <div className="min-h-screen bg-gradient-to-b from-slate-900 to-slate-950 w-full">
+      <div className="w-full mx-auto py-8 md:py-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8 md:mb-12">
           <div>
@@ -146,8 +147,7 @@ export default function DecksPage() {
               )
             })}
           </div>
-        )}
-      </div>
+        )}        </div>      </div>
     </div>
   )
 }

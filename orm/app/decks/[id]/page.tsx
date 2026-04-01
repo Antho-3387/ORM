@@ -84,8 +84,9 @@ export default function DeckDetailPage() {
   const uniqueCards = deck.cards?.length || 0
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-900 to-slate-950">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="min-h-screen bg-gradient-to-b from-slate-900 to-slate-950 w-full">
+      <div className="w-full mx-auto py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Back Button */}
         <Link href="/decks" className="inline-flex items-center gap-2 text-purple-400 hover:text-purple-300 transition mb-8">
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -186,8 +187,7 @@ export default function DeckDetailPage() {
               Back to Decks
             </Link>
           </div>
-        )}
-      </div>
+        )}        </div>      </div>
     </div>
   )
 }

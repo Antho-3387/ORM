@@ -60,8 +60,9 @@ export default function CreateDeckPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-900 to-slate-950">
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
+    <div className="min-h-screen bg-gradient-to-b from-slate-900 to-slate-950 w-full">
+      <div className="w-full mx-auto py-8 md:py-12">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8 md:mb-12">
           <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-2">
@@ -156,6 +157,7 @@ export default function CreateDeckPage() {
             </Link>
           </div>
         </form>
+        </div>
       </div>
     </div>
   )
