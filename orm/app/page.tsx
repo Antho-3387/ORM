@@ -1,12 +1,10 @@
 'use client'
 
-import { useEffect } from 'react'
-
 export default function HomePage() {
-  useEffect(() => {
-    // Redirige vers /public/index.html
-    window.location.href = '/'
-  }, [])
-
-  return null
+  return (
+    <div className="flex flex-col items-center justify-center min-h-screen">
+      <h1 className="text-4xl font-bold mb-4">Magic Decks</h1>
+      <p className="text-xl text-gray-600">Welcome to your card collection app</p>
+    </div>
+  )
 }
