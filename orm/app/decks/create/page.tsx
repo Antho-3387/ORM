@@ -60,79 +60,76 @@ export default function CreateDeckPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-3xl mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">Create New Deck</h1>
-          <p className="text-gray-600">Create a deck from scratch or import a decklist</p>
-        </div>
+    <div className="min-h-screen bg-white">
+      <div className="max-w-2xl mx-auto px-4 py-12">
+        <h1 className="text-4xl font-bold text-gray-900 mb-2">Create New Deck</h1>
+        <p className="text-gray-600 mb-8">Add a new deck to your collection</p>
 
         {error && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
             {error}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="bg-white rounded-lg border border-gray-200 p-8">
-          {/* Deck Name */}
-          <div className="mb-6">
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Name */}
+          <div>
             <label className="block text-sm font-semibold text-gray-900 mb-2">
-              Deck Name <span className="text-red-600">*</span>
+              Deck Name *
             </label>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="e.g., Red Burn, Blue Control"
+              placeholder="Red Burn, Blue Control..."
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               required
             />
           </div>
 
           {/* Description */}
-          <div className="mb-6">
+          <div>
             <label className="block text-sm font-semibold text-gray-900 mb-2">
               Description
             </label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Describe your deck strategy and win conditions..."
+              placeholder="Describe your deck strategy..."
               rows={3}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
             />
           </div>
 
           {/* Decklist */}
-          <div className="mb-6">
+          <div>
             <label className="block text-sm font-semibold text-gray-900 mb-2">
-              Import Decklist <span className="text-gray-500 font-normal">(Optional)</span>
+              Import Decklist (optional)
             </label>
             <textarea
               value={decklistText}
               onChange={(e) => setDecklistText(e.target.value)}
-              placeholder="Paste your decklist here (one card per line)&#10;Examples:&#10;4x Lightning Bolt&#10;3 Counterspell&#10;2 Island"
-              rows={10}
+              placeholder="Paste one card per line (4x Lightning Bolt, 3 Island, etc.)"
+              rows={8}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none font-mono text-sm"
             />
             <p className="text-xs text-gray-600 mt-2">
-              Supported formats: "4x Card", "4 Card", or just "Card" (defaults to 1x)
+              Formats: "4x Card", "4 Card", or just "Card"
             </p>
           </div>
 
           {/* Actions */}
-          <div className="flex gap-4">
+          <div className="flex gap-3 pt-6">
             <button
               type="submit"
               disabled={loading || !name}
-              className="flex-1 px-6 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? 'Creating...' : 'Create Deck'}
             </button>
             <Link
               href="/decks"
-              className="flex-1 px-6 py-2 bg-gray-200 text-gray-900 font-semibold rounded-lg hover:bg-gray-300 transition text-center"
+              className="flex-1 px-4 py-2 border border-gray-300 text-gray-900 font-semibold rounded-lg hover:bg-gray-50 transition text-center"
             >
               Cancel
             </Link>
