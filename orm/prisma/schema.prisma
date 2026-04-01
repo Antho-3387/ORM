@@ -1,0 +1,58 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String     @id @default(cuid())
+  email     String     @unique
+  password  String
+  name      String?
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  
+  decks     Deck[]
+}
+
+model Deck {
+  id          String     @id @default(cuid())
+  name        String
+  description String?
+  userId      String
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  
+  cards       DeckCard[]
+  
+  @@index([userId])
+}
+
+model Card {
+  id              String     @id @default(cuid())
+  scryfallId      String     @unique
+  name            String
+  manaValue       Int?
+  colors          String     @default("")
+  type            String
+  imageUrl        String?
+  
+  deckCards       DeckCard[]
+}
+
+model DeckCard {
+  id        String   @id @default(cuid())
+  deckId    String
+  deck      Deck     @relation(fields: [deckId], references: [id], onDelete: Cascade)
+  cardId    String
+  card      Card     @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  quantity  Int      @default(1)
+  
+  @@unique([deckId, cardId])
+  @@index([deckId])
+  @@index([cardId])
+}
