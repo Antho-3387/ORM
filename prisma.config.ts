@@ -12,3 +12,4 @@ export default defineConfig({
     url: process.env["DIRECT_URL=postgresql://postgres:postgres@localhost:5432/notes?schema=public"],
   },
 });
+//teste
