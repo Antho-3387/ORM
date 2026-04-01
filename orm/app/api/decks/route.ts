@@ -87,7 +87,7 @@ export async function POST(request: NextRequest) {
               card = await prisma.card.create({
                 data: {
                   name: cardName,
-                  scryfall_id: '', // À compléter avec une API Scryfall
+                  scryfallId: '',
                 },
               })
             }
