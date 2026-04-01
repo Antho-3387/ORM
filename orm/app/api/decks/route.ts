@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
 
     // Si decklistText fourni, parser et ajouter les cartes
     if (decklistText && decklistText.trim()) {
-      const lines = decklistText.split('\n').filter(line => line.trim())
+      const lines = decklistText.split('\n').filter((line: string) => line.trim())
       
       for (const line of lines) {
         // Parser des formats: "4x Card Name", "4 Card Name", "Card Name"
