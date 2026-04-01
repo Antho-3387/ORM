@@ -137,7 +137,7 @@ orm/
 
 ## Configuration Render
 
-1. Database: PostgreSQL Supabase
+1. Database: PostgreSQL
 2. Environment Variable: DATABASE_URL
 3. Build Command: `npm run build`
 4. Start Command: `npm run start`
@@ -146,7 +146,7 @@ orm/
 
 - **Frontend**: Next.js 16, React 19, Tailwind CSS
 - **Backend**: Next.js API Routes, Prisma ORM
-- **Database**: PostgreSQL (Supabase)
+- **Database**: PostgreSQL
 - **Auth**: Session localStorage + bcryptjs
 - **External API**: Scryfall (Magic Cards Database)
 

@@ -15,7 +15,7 @@ Une application web moderne pour créer, gérer et partager des decks Magic: The
 
 - **Frontend**: Next.js 16, React 19, Tailwind CSS
 - **Backend**: Next.js API Routes
-- **Database**: PostgreSQL (Supabase)
+- **Database**: PostgreSQL
 - **ORM**: Prisma
 - **Auth**: bcryptjs + localStorage
 - **External API**: Scryfall Magic Cards API
@@ -25,7 +25,7 @@ Une application web moderne pour créer, gérer et partager des decks Magic: The
 ### Prérequis
 - Node.js 18+
 - npm ou yarn
-- Compte Supabase
+- Compte PostgreSQL ou serveur local
 
 ### Étapes
 
@@ -80,18 +80,18 @@ git push origin main
    - Start Command: `npm run start`
 
 2. **Ajouter les variables d'environnement**
-   - `DATABASE_URL`: Votre connexion PostgreSQL Supabase
+   - `DATABASE_URL`: Votre connexion PostgreSQL
    - `NODE_ENV`: `production`
 
-3. **Créer la base de données** (ou utiliser Supabase existante)
-   - Supabase URL
-   - Clés Supabase (optionnel)
+3. **Créer la base de données** (PostgreSQL local ou cloud)
+   - URL de connexion PostgreSQL
+   - Optional: Additional env vars
 
 4. **Déployer**
    - Cliquer sur "Create Web Service"
    - Render va automatiquement déployer
 
-### Variables Supabase à configurer
+### Variables de base de données à configurer
 
 ```
 # Database
@@ -254,7 +254,7 @@ MIT
 ---
 
 **URL Render**: https://orm-hfjc.onrender.com
-**Database**: Supabase PostgreSQL
+**Database**: PostgreSQL
 
 ## Deploy on Vercel
 

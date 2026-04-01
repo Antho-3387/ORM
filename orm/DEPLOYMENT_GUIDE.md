@@ -1,12 +1,11 @@
 # 🚀 Guide Complet du Déploiement sur Render
 
-## Étape 1: Préparer votre Supabase
+## Étape 1: Préparer votre base de données PostgreSQL
 
-### 1.1 Copier les variables
-Dans votre projet Supabase, récupérez:
+### 1.1 Obtenir la connection string
+Vous avez besoin d'une base PostgreSQL (locale ou cloud). Récupérez:
 ```
-DATABASE_URL: postgresql://postgres.ahlkrhnrkzxoxnrmnwjw:G9#fL7mZ2!qXeP8@aws-1-eu-west-1.pooler.supabase.com:6543/postgres?pgbouncer=true
-NEXT_PUBLIC_SUPABASE_URL: https://ahlkrhnrkzxoxnrmnwjw.supabase.co
+DATABASE_URL: postgresql://user:password@host:port/database
 ```
 
 ## Étape 2: Configurer localement
@@ -19,8 +18,8 @@ cp .env.example .env.local
 
 ### 2.2 Remplir les variables
 ```
-DATABASE_URL=postgresql://postgres.ahlkrhnrkzxoxnrmnwjw:...@aws-1-eu-west-1.pooler.supabase.com:6543/postgres?pgbouncer=true
-NEXT_PUBLIC_SUPABASE_URL=https://ahlkrhnrkzxoxnrmnwjw.supabase.co
+DATABASE_URL=postgresql://user:password@localhost:5432/orm
+DIRECT_URL=postgresql://user:password@localhost:5432/orm
 ```
 
 ### 2.3 Initialiser la BD
