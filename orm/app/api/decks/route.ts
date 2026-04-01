@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { name, description } = await request.json()
+    const { name, description, decklistText } = await request.json()
 
     if (!name) {
       return NextResponse.json(
@@ -65,6 +65,45 @@ export async function POST(request: NextRequest) {
         userId,
       },
     })
+
+    // Si decklistText fourni, parser et ajouter les cartes
+    if (decklistText && decklistText.trim()) {
+      const lines = decklistText.split('\n').filter(line => line.trim())
+      
+      for (const line of lines) {
+        // Parser des formats: "4x Card Name", "4 Card Name", "Card Name"
+        const match = line.match(/^(\d+)?\s*x?\s*(.+)$/)
+        if (match) {
+          const quantity = parseInt(match[1] || '1')
+          const cardName = match[2].trim()
+
+          if (cardName) {
+            // Créer la carte si on ne l'a pas en DB (ou chercher)
+            let card = await prisma.card.findFirst({
+              where: { name: cardName },
+            })
+
+            if (!card) {
+              card = await prisma.card.create({
+                data: {
+                  name: cardName,
+                  scryfall_id: '', // À compléter avec une API Scryfall
+                },
+              })
+            }
+
+            // Ajouter la carte au deck
+            await prisma.deckCard.create({
+              data: {
+                deckId: deck.id,
+                cardId: card.id,
+                quantity,
+              },
+            })
+          }
+        }
+      }
+    }
 
     return NextResponse.json(deck, { status: 201 })
   } catch (error) {

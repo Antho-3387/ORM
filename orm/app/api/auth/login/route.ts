@@ -22,7 +22,9 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({
-      user: { id: user.id, email: user.email, name: user.name },
+      id: user.id,
+      email: user.email,
+      name: user.name,
     })
   } catch (error) {
     console.error('Error logging in user:', error)
