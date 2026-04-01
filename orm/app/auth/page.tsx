@@ -35,87 +35,107 @@ export default function AuthPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
-      <div className="bg-gray-800 rounded-lg p-8 w-full max-w-md">
-        <h1 className="text-3xl font-bold text-center mb-6 text-white">
-          {isLogin ? 'Login' : 'Register'}
-        </h1>
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      <div className="w-full max-w-md bg-white rounded-lg border border-gray-200 p-8 shadow-lg">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            {isLogin ? 'Welcome Back' : 'Create Account'}
+          </h1>
+          <p className="text-gray-600 text-sm">
+            {isLogin ? 'Sign in to access your decks' : 'Join us to build your deck collection'}
+          </p>
+        </div>
 
+        {/* Error */}
         {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
             {error}
           </div>
         )}
 
+        {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Name Field */}
           {!isLogin && (
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Name
+              <label className="block text-sm font-semibold text-gray-900 mb-2">
+                Full Name
               </label>
               <input
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                required
+                placeholder="John Doe"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                required={!isLogin}
               />
             </div>
           )}
 
+          {/* Email */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Email
+            <label className="block text-sm font-semibold text-gray-900 mb-2">
+              Email Address
             </label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              placeholder="you@example.com"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               required
             />
           </div>
 
+          {/* Password */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
+            <label className="block text-sm font-semibold text-gray-900 mb-2">
               Password
             </label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              placeholder="••••••••"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               required
             />
           </div>
 
+          {/* Submit Button */}
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-purple-600 text-white font-bold py-2 rounded hover:bg-purple-700 transition disabled:opacity-50"
+            className="w-full px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed mt-6"
           >
-            {loading ? 'Loading...' : isLogin ? 'Login' : 'Register'}
+            {loading ? 'Processing...' : isLogin ? 'Sign In' : 'Create Account'}
           </button>
         </form>
 
+        {/* Toggle Auth Mode */}
         <div className="mt-6 text-center">
-          <p className="text-gray-400 text-sm">
+          <p className="text-gray-600 text-sm">
             {isLogin ? "Don't have an account? " : 'Already have an account? '}
             <button
               onClick={() => {
                 setIsLogin(!isLogin)
                 setError('')
+                setEmail('')
+                setPassword('')
+                setName('')
               }}
-              className="text-purple-400 font-bold hover:underline"
+              className="text-blue-600 font-semibold hover:text-blue-700"
             >
-              {isLogin ? 'Register' : 'Login'}
+              {isLogin ? 'Sign up' : 'Sign in'}
             </button>
           </p>
         </div>
 
+        {/* Back Link */}
         <div className="mt-4 text-center">
-          <Link href="/" className="text-sm text-gray-500 hover:text-gray-300">
-            ← Back to home
+          <Link href="/" className="text-sm text-gray-600 hover:text-gray-900">
+            ← Back to Home
           </Link>
         </div>
       </div>

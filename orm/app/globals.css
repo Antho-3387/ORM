@@ -1,17 +1,15 @@
 @import "tailwindcss";
 
 :root {
-  --cyan: #00D4FF;
-  --cyan-dark: #0099CC;
-  --purple: #7B2CBF;
-  --purple-dark: #5A1E96;
-  --pink: #FF1493;
-  --background: #1a1a2e;
-  --background-light: #16213e;
-  --foreground: #eaeaea;
-  --border: #2a2a4e;
+  --primary: #2563eb;
+  --primary-dark: #1d4ed8;
+  --background: #f8f9fa;
+  --surface: #ffffff;
+  --text: #1f2937;
+  --text-muted: #6b7280;
+  --border: #e5e7eb;
   --success: #10b981;
-  --error: #ff4757;
+  --error: #ef4444;
 }
 
 * {
@@ -25,14 +23,13 @@ html {
 }
 
 body {
-  background: #1a1a2e;
-  color: var(--foreground);
+  background: var(--background);
+  color: var(--text);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  line-height: 1.6;
 }
 
 /* Typography */

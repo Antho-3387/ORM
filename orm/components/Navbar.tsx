@@ -14,35 +14,50 @@ export function Navbar() {
   }
 
   return (
-    <nav className="bg-gray-900 border-b border-cyan-400/30 py-4 sticky top-0 z-50">
+    <nav className="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center">
-          <Link href="/" className="flex items-center gap-2">
-            <span className="text-2xl">🂡</span>
-            <span className="text-2xl font-bold text-cyan-400">MTG Deck Collection</span>
+        <div className="flex justify-between items-center h-16">
+          {/* Logo */}
+          <Link href="/" className="flex items-center gap-2 font-bold text-xl text-blue-600">
+            🂡 MTG Decks
           </Link>
 
+          {/* Navigation */}
+          <div className="hidden md:flex items-center gap-6">
+            {isAuthenticated ? (
+              <>
+                <Link href="/decks" className="text-gray-700 hover:text-blue-600 text-sm font-medium">
+                  My Decks
+                </Link>
+                <Link href="/decks/create" className="text-gray-700 hover:text-blue-600 text-sm font-medium">
+                  Create Deck
+                </Link>
+              </>
+            ) : null}
+          </div>
+
+          {/* Right side - Account */}
           <div className="flex items-center gap-4">
             {isAuthenticated ? (
               <>
-                <span className="text-gray-300 text-sm">{user?.email}</span>
+                <div className="text-sm text-gray-600">{user?.email}</div>
                 <button
                   onClick={handleLogout}
-                  className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded text-sm font-bold"
+                  className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition"
                 >
-                  Déconnexion
+                  Logout
                 </button>
               </>
             ) : (
               <>
-                <Link href="/auth" className="text-cyan-400 hover:text-cyan-300 text-sm font-bold">
+                <Link href="/auth" className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-blue-600">
                   Login
                 </Link>
                 <Link
                   href="/auth"
-                  className="bg-cyan-500 hover:bg-cyan-600 text-gray-900 px-4 py-2 rounded text-sm font-bold"
+                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition"
                 >
-                  Register
+                  Sign Up
                 </Link>
               </>
             )}

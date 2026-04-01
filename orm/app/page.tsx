@@ -4,58 +4,71 @@ import Link from 'next/link'
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen bg-gray-950">
-      <div className="w-full h-full">
-        <div className="max-w-7xl mx-auto px-4 py-16 md:py-24">
-          {/* Header */}
-          <div className="text-center mb-12">
-            <div className="mb-6 text-6xl md:text-8xl">🂡</div>
-            <h1 className="text-5xl md:text-6xl font-bold text-cyan-400 mb-4">
-              MTG Deck Collection
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-7xl mx-auto">
+        {/* Hero */}
+        <section className="px-4 py-16 md:py-24">
+          <div className="max-w-3xl mx-auto text-center">
+            <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-4">
+              MTG Deck Manager
             </h1>
-            <p className="text-xl text-gray-300 mb-3">
-              Build, manage, and organize your Magic decks
+            <p className="text-xl text-gray-600 mb-8">
+              Create, organize, and manage your Magic: The Gathering decks with ease
             </p>
-            <p className="text-base text-gray-500">
-              Import decklists with official Scryfall artwork
-            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Link
+                href="/decks"
+                className="px-8 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition"
+              >
+                View My Decks
+              </Link>
+              <Link
+                href="/auth"
+                className="px-8 py-3 bg-gray-200 text-gray-900 font-semibold rounded-lg hover:bg-gray-300 transition"
+              >
+                Get Started
+              </Link>
+            </div>
           </div>
+        </section>
 
-          {/* CTA Buttons */}
-          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
-            <Link 
-              href="/decks" 
-              className="px-8 py-3 bg-cyan-500 hover:bg-cyan-600 text-black font-bold rounded text-center"
-            >
-              🚀 Get Started
-            </Link>
-            <Link 
-              href="/auth" 
-              className="px-8 py-3 border-2 border-cyan-400 text-cyan-400 font-bold rounded hover:border-cyan-300 hover:text-cyan-300 transition text-center"
-            >
-              📝 Sign In
-            </Link>
-          </div>
+        {/* Quick Actions */}
+        <section className="px-4 py-16">
+          <div className="max-w-4xl mx-auto">
+            <h2 className="text-3xl font-bold text-gray-900 mb-8 text-center">Quick Actions</h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* Create Deck */}
+              <div className="bg-white p-6 rounded-lg border border-gray-200 hover:shadow-lg transition">
+                <div className="text-4xl mb-4">🎴</div>
+                <h3 className="text-xl font-bold text-gray-900 mb-2">Create Deck</h3>
+                <p className="text-gray-600 mb-4">Start building a new deck from scratch or import a decklist</p>
+                <Link href="/decks/create" className="inline-block text-blue-600 hover:text-blue-700 font-semibold">
+                  Create Now →
+                </Link>
+              </div>
 
-          {/* Features */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
-            <div className="bg-gray-900 border border-cyan-400/30 rounded p-6 hover:border-cyan-400/70 transition">
-              <div className="text-4xl mb-3">🎴</div>
-              <h3 className="text-lg font-bold text-cyan-400 mb-2">Build Decks</h3>
-              <p className="text-gray-400 text-sm">Create, edit and organize your Magic decks</p>
-            </div>
-            <div className="bg-gray-900 border border-cyan-400/30 rounded p-6 hover:border-cyan-400/70 transition">
-              <div className="text-4xl mb-3">🖼️</div>
-              <h3 className="text-lg font-bold text-cyan-400 mb-2">Card Images</h3>
-              <p className="text-gray-400 text-sm">View all your cards with official Scryfall artwork</p>
-            </div>
-            <div className="bg-gray-900 border border-cyan-400/30 rounded p-6 hover:border-cyan-400/70 transition">
-              <div className="text-4xl mb-3">📋</div>
-              <h3 className="text-lg font-bold text-cyan-400 mb-2">Import Lists</h3>
-              <p className="text-gray-400 text-sm">Paste decklists and we will handle the rest</p>
+              {/* Search Cards */}
+              <div className="bg-white p-6 rounded-lg border border-gray-200 hover:shadow-lg transition">
+                <div className="text-4xl mb-4">🔍</div>
+                <h3 className="text-xl font-bold text-gray-900 mb-2">Search Cards</h3>
+                <p className="text-gray-600 mb-4">Find cards from Scryfall database with official artwork</p>
+                <Link href="/decks" className="inline-block text-blue-600 hover:text-blue-700 font-semibold">
+                  Browse Cards →
+                </Link>
+              </div>
+
+              {/* Manage Decks */}
+              <div className="bg-white p-6 rounded-lg border border-gray-200 hover:shadow-lg transition">
+                <div className="text-4xl mb-4">⚙️</div>
+                <h3 className="text-xl font-bold text-gray-900 mb-2">Manage Decks</h3>
+                <p className="text-gray-600 mb-4">Edit, organize, and share your deck collection</p>
+                <Link href="/decks" className="inline-block text-blue-600 hover:text-blue-700 font-semibold">
+                  My Collection →
+                </Link>
+              </div>
             </div>
           </div>
-        </div>
+        </section>
       </div>
     </div>
   )
