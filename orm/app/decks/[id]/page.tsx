@@ -9,6 +9,8 @@ import { useParams } from 'next/navigation'
 interface Card {
   id: string
   name: string
+  type?: string
+  imageUrl?: string
   quantity: number
 }
 
@@ -17,7 +19,7 @@ interface Deck {
   name: string
   description?: string
   cards?: Array<{
-    card: { id: string; name: string }
+    card: { id: string; name: string; type?: string; imageUrl?: string }
     quantity: number
   }>
 }
@@ -92,23 +94,35 @@ export default function DeckDetailPage() {
         </div>
 
         {deck.cards && deck.cards.length > 0 ? (
-          <div className="bg-gray-800 rounded-lg overflow-hidden">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-gray-700 bg-gray-700">
-                  <th className="px-6 py-3 text-left text-white font-bold">Card Name</th>
-                  <th className="px-6 py-3 text-right text-white font-bold">Quantity</th>
-                </tr>
-              </thead>
-              <tbody>
-                {deck.cards.map((dc, idx) => (
-                  <tr key={idx} className="border-b border-gray-700 hover:bg-gray-700">
-                    <td className="px-6 py-4 text-gray-300">{dc.card.name}</td>
-                    <td className="px-6 py-4 text-right text-gray-300">{dc.quantity}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {deck.cards.map((dc, idx) => (
+              <div key={idx} className="bg-gray-800 rounded-lg overflow-hidden hover:shadow-lg transition">
+                {dc.card.imageUrl ? (
+                  <div className="relative pb-full bg-gray-700">
+                    <img
+                      src={dc.card.imageUrl}
+                      alt={dc.card.name}
+                      className="w-full h-auto"
+                      loading="lazy"
+                    />
+                    <div className="absolute top-0 right-0 bg-purple-600 text-white px-2 py-1 text-sm font-bold rounded-bl">
+                      {dc.quantity}x
+                    </div>
+                  </div>
+                ) : (
+                  <div className="bg-gray-700 aspect-video flex flex-col items-center justify-center p-4">
+                    <div className="text-gray-400 text-center">
+                      <p className="font-bold text-sm mb-1">{dc.card.name}</p>
+                      <p className="text-xs">×{dc.quantity}</p>
+                    </div>
+                  </div>
+                )}
+                <div className="p-3">
+                  <h3 className="text-sm font-bold text-white truncate mb-1">{dc.card.name}</h3>
+                  <p className="text-xs text-gray-400">{dc.card.type || 'Unknown'}</p>
+                </div>
+              </div>
+            ))}
           </div>
         ) : (
           <div className="bg-gray-800 rounded-lg p-8 text-center">

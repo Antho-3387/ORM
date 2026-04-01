@@ -8,6 +8,8 @@ import { useRouter } from 'next/navigation'
 interface Card {
   id: string
   name: string
+  type?: string
+  imageUrl?: string
   quantity: number
 }
 
@@ -16,7 +18,7 @@ interface Deck {
   name: string
   description?: string
   cards?: Array<{
-    card: { id: string; name: string }
+    card: { id: string; name: string; type?: string; imageUrl?: string }
     quantity: number
   }>
 }

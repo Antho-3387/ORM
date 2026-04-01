@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
+import { searchCards } from '@/lib/scryfall'
 
 /**
  * GET /api/decks - Liste tous les decks de l'utilisateur
@@ -78,29 +79,58 @@ export async function POST(request: NextRequest) {
           const cardName = match[2].trim()
 
           if (cardName) {
-            // Créer la carte si on ne l'a pas en DB (ou chercher)
+            // Chercher la carte en DB par nom
             let card = await prisma.card.findFirst({
               where: { name: cardName },
             })
 
             if (!card) {
-              card = await prisma.card.create({
-                data: {
-                  name: cardName,
-                  scryfallId: '',
-                  type: 'Unknown',
-                },
-              })
+              // Si pas en DB, chercher sur Scryfall
+              const scryfallResults = await searchCards(cardName)
+              let scryfallCard = scryfallResults[0] || null
+
+              // Créer ou récupérer depuis Scryfall
+              if (scryfallCard) {
+                // Vérifier si elle existe déjà par scryfallId
+                card = await prisma.card.findFirst({
+                  where: { scryfallId: scryfallCard.id },
+                })
+
+                if (!card) {
+                  // Créer avec les données de Scryfall
+                  card = await prisma.card.create({
+                    data: {
+                      name: scryfallCard.name,
+                      scryfallId: scryfallCard.id,
+                      type: scryfallCard.type_line || 'Unknown',
+                      manaValue: scryfallCard.mana_value || 0,
+                      colors: scryfallCard.colors?.join('') || '',
+                      imageUrl: scryfallCard.image_uris?.normal || '',
+                    },
+                  })
+                }
+              } else {
+                // Fallback: créer avec données par défaut
+                card = await prisma.card.create({
+                  data: {
+                    name: cardName,
+                    scryfallId: '',
+                    type: 'Unknown',
+                  },
+                })
+              }
             }
 
             // Ajouter la carte au deck
-            await prisma.deckCard.create({
-              data: {
-                deckId: deck.id,
-                cardId: card.id,
-                quantity,
-              },
-            })
+            if (card) {
+              await prisma.deckCard.create({
+                data: {
+                  deckId: deck.id,
+                  cardId: card.id,
+                  quantity,
+                },
+              })
+            }
           }
         }
       }
