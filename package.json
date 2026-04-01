@@ -1,8 +1,17 @@
 {
-  "devDependencies": {
-    "prisma": "^7.6.0"
+  "name": "magic-decks",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "cd orm && npm run dev",
+    "build": "cd orm && npm run build",
+    "start": "cd orm && npm run start",
+    "lint": "cd orm && npm run lint"
   },
   "dependencies": {
     "@prisma/client": "^7.6.0"
+  },
+  "devDependencies": {
+    "prisma": "^7.6.0"
   }
 }
