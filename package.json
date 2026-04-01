@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "cd orm && npm run dev",
-    "build": "cd orm && npm run build",
+    "build": "echo 'Installing root deps...' && npm install && echo 'Installing orm deps...' && cd orm && npm install && echo 'Building project...' && npm run build",
     "start": "cd orm && npm run start",
     "lint": "cd orm && npm run lint"
   },
