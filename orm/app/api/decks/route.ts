@@ -88,6 +88,7 @@ export async function POST(request: NextRequest) {
                 data: {
                   name: cardName,
                   scryfallId: '',
+                  type: 'Unknown',
                 },
               })
             }
