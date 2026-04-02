@@ -6,13 +6,26 @@ DROP POLICY IF EXISTS "Users can create decks" ON public."Deck";
 DROP POLICY IF EXISTS "Users can modify deck cards they own" ON public."DeckCard";
 DROP POLICY IF EXISTS "Users can delete deck cards from their decks" ON public."DeckCard";
 DROP POLICY IF EXISTS "Users can insert deck cards in their decks" ON public."DeckCard";
+DROP POLICY IF EXISTS "Users can read all users" ON public."User";
+DROP POLICY IF EXISTS "Users can insert own user record" ON public."User";
+DROP POLICY IF EXISTS "Users can update own user record" ON public."User";
 
--- Activer RLS on the tables
-ALTER TABLE public."Deck" ENABLE ROW LEVEL SECURITY;
+-- ============ USER TABLE POLICIES ============
+ALTER TABLE public."User" ENABLE ROW LEVEL SECURITY;
 
--- Politique pour que les users ne voient que leurs propres decks en modification
--- (mais tous les decks en lecture)
-CREATE POLICY "Users can read all decks" ON public."Deck"
+-- Tous les utilisateurs authentifiés peuvent lire les autres utilisateurs
+CREATE POLICY "Users can read all users" ON public."User"
+  FOR SELECT USING (true);
+
+-- Les utilisateurs authentifiés peuvent créer leur propre enregistrement
+CREATE POLICY "Users can insert own user record" ON public."User"
+  FOR INSERT WITH CHECK (auth.uid()::text = id);
+
+-- Les utilisateurs peuvent mettre à jour leur propre profil
+CREATE POLICY "Users can update own user record" ON public."User"
+  FOR UPDATE USING (auth.uid()::text = id);
+
+-- ============ DECK TABLE POLICIES ============
   FOR SELECT USING (true);
 
 CREATE POLICY "Users can only modify their own decks" ON public."Deck"
@@ -54,7 +67,8 @@ CREATE POLICY "Users can insert deck cards in their decks" ON public."DeckCard"
     )
   );
 
--- Publier la table Card pour PostgREST
+-- Publier les tables pour PostgREST
+GRANT ALL ON public."User" TO anon, authenticated;
 GRANT ALL ON public."Card" TO anon, authenticated;
 GRANT ALL ON public."Deck" TO anon, authenticated;
 GRANT ALL ON public."DeckCard" TO anon, authenticated;
