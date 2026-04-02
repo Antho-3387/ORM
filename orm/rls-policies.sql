@@ -26,6 +26,9 @@ CREATE POLICY "Users can update own user record" ON public."User"
   FOR UPDATE USING (auth.uid()::text = id);
 
 -- ============ DECK TABLE POLICIES ============
+ALTER TABLE public."Deck" ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can read all decks" ON public."Deck"
   FOR SELECT USING (true);
 
 CREATE POLICY "Users can only modify their own decks" ON public."Deck"
