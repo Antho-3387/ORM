@@ -60,7 +60,19 @@ export default function CardsPage() {
       setLoading(true)
       try {
         const results = await searchCards(filters.searchQuery)
-        setCards(results.slice(0, 30))
+        
+        // Trier les résultats: d'abord les noms qui commencent par la recherche, puis les autres
+        const query = filters.searchQuery.toLowerCase()
+        const sorted = results.sort((a, b) => {
+          const aStarts = a.name.toLowerCase().startsWith(query)
+          const bStarts = b.name.toLowerCase().startsWith(query)
+          if (aStarts && !bStarts) return -1
+          if (!aStarts && bStarts) return 1
+          // Si les deux commencent ou ne commencent pas, trier par ordre alphabétique
+          return a.name.localeCompare(b.name)
+        })
+        
+        setCards(sorted.slice(0, 30))
       } catch (error) {
         console.error('Failed to search cards:', error)
         setCards([])
