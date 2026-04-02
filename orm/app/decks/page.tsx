@@ -50,7 +50,13 @@ export default function DecksPage() {
         return
       }
 
-      setDecks(data || [])
+      // Normalize user field from array to object
+      const normalizedData = (data || []).map((deck: any) => ({
+        ...deck,
+        user: Array.isArray(deck.user) ? deck.user[0] : deck.user
+      }))
+
+      setDecks(normalizedData as Deck[])
     } catch (error) {
       console.error('Error:', error)
     } finally {
