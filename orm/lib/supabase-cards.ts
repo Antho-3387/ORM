@@ -53,7 +53,7 @@ export async function searchCardsOptimized(query: string): Promise<Card[]> {
               mana_value: card.mana_value,
               colors: JSON.stringify(card.colors || []),
             },
-          ]).catch(() => null) // Ignorer les erreurs d'upsert
+          ]).then(() => null).catch(() => null) // Ignorer les erreurs d'upsert
         )
       )
 
