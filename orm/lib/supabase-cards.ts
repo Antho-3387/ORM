@@ -11,9 +11,33 @@ interface Card {
   scryfall_id: string
 }
 
+interface ScryfallCard {
+  id: string
+  name: string
+  type_line: string
+  mana_value?: number
+  colors?: string[]
+  image_uris?: { normal: string }
+}
+
 // Cache en mémoire pour les cartes (TTL: 5 minutes)
-const cardCache = new Map<string, { data: Card[]; timestamp: number }>()
+const cardCache = new Map<string, { data: any[]; timestamp: number }>()
 const CACHE_TTL = 5 * 60 * 1000
+
+/**
+ * Transformer une carte Scryfall en carte locale
+ */
+function transformScryfallCard(scryfallCard: any): Card {
+  return {
+    id: scryfallCard.id,
+    scryfall_id: scryfallCard.id,
+    name: scryfallCard.name,
+    type_line: scryfallCard.type_line,
+    mana_value: scryfallCard.mana_value,
+    colors: scryfallCard.colors ? JSON.stringify(scryfallCard.colors) : '',
+    image_url: scryfallCard.image_uris?.normal,
+  }
+}
 
 /**
  * Chercher les cartes dans Supabase (local) ou Scryfall (API)
@@ -41,30 +65,33 @@ export async function searchCardsOptimized(query: string): Promise<Card[]> {
     // Si pas de résultat dans Supabase, chercher sur Scryfall et mettre en cache
     const scryfallCards = await scryfallSearch(query)
     if (scryfallCards.length > 0) {
+      const transformedCards = scryfallCards.map(transformScryfallCard)
+
       // Sauvegarder dans Supabase pour les prochaines fois (non-bloquant)
-      scryfallCards.forEach(card => {
+      transformedCards.forEach(card => {
         // Fire and forget - sauvegarde en arrière-plan sans bloquer
         void supabase.from('Card').upsert([
           {
-            scryfall_id: card.id,
+            scryfall_id: card.scryfall_id,
             name: card.name,
             type_line: card.type_line,
-            image_url: card.image_uris?.normal,
+            image_url: card.image_url,
             mana_value: card.mana_value,
-            colors: JSON.stringify(card.colors || []),
+            colors: card.colors,
           },
-        ], { onConflict: 'scryfall_id' }).select().catch(() => {}) // Ignorer silencieusement les erreurs d'upsert
+        ], { onConflict: 'scryfall_id' })
       })
 
-      cardCache.set(query, { data: scryfallCards as Card[], timestamp: Date.now() })
-      return scryfallCards as Card[]
+      cardCache.set(query, { data: transformedCards, timestamp: Date.now() })
+      return transformedCards
     }
 
     return []
   } catch (error) {
     console.error('Error searching cards:', error)
     // Fallback sur Scryfall
-    return await scryfallSearch(query)
+    const cards = await scryfallSearch(query)
+    return cards.map(transformScryfallCard)
   }
 }
 
