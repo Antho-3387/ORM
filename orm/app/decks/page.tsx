@@ -8,6 +8,7 @@ import Link from 'next/link'
 interface Deck {
   id: string
   name: string
+  list: string
   description?: string
   userId: string
   user?: { email: string; name: string }
@@ -32,6 +33,7 @@ export default function DecksPage() {
         .select(`
           id,
           name,
+          list,
           description,
           userId,
           createdAt,

@@ -2,46 +2,96 @@
 
 import Link from 'next/link'
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { supabase } from '@/lib/supabase'
+import { useAuth } from '@/lib/auth-context'
 
 export default function CreateDeckPage() {
   const [deckName, setDeckName] = useState('')
   const [deckList, setDeckList] = useState('')
   const [saved, setSaved] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const router = useRouter()
+  const { user } = useAuth()
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    if (!deckName.trim() || !deckList.trim()) {
-      alert('Complétez le nom et la decklist')
+    if (!user) {
+      setError('Vous devez être connecté pour créer un deck')
       return
     }
 
-    const deck = {
-      id: Date.now(),
-      name: deckName,
-      list: deckList,
-      createdAt: new Date().toISOString()
+    if (!deckName.trim() || !deckList.trim()) {
+      setError('Complétez le nom et la decklist')
+      return
     }
 
-    localStorage.setItem(`deck_${deck.id}`, JSON.stringify(deck))
-    
-    setSaved(true)
-    setTimeout(() => {
-      setSaved(false)
-      setDeckName('')
-      setDeckList('')
-    }, 2000)
+    setLoading(true)
+    setError('')
+
+    try {
+      const { data, error: dbError } = await supabase
+        .from('Deck')
+        .insert([
+          {
+            name: deckName,
+            list: deckList,
+            userId: user.id,
+            createdAt: new Date().toISOString(),
+          },
+        ])
+        .select()
+        .single()
+
+      if (dbError) {
+        console.error('DB Error:', dbError)
+        setError('Erreur lors de la sauvegarde: ' + dbError.message)
+        return
+      }
+
+      console.log('Deck saved:', data)
+      setSaved(true)
+      
+      setTimeout(() => {
+        setSaved(false)
+        setDeckName('')
+        setDeckList('')
+        router.push('/decks')
+      }, 2000)
+    } catch (err: any) {
+      console.error('Error:', err)
+      setError('Erreur: ' + err.message)
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
     <main style={{ maxWidth: '1000px', margin: '0 auto', padding: '4rem 2rem' }}>
-      <Link href="/">
+      <Link href="/decks">
         <button style={{ background: '#404050', marginBottom: '2rem' }}>
           Retour
         </button>
       </Link>
 
       <h1>Créer un Deck</h1>
+
+      {!user && (
+        <div style={{
+          background: '#ff6b6b',
+          color: '#fff',
+          padding: '1rem',
+          borderRadius: '6px',
+          marginBottom: '2rem'
+        }}>
+          Vous devez être connecté pour créer un deck.{' '}
+          <Link href="/auth" style={{ color: '#fff', textDecoration: 'underline' }}>
+            Connectez-vous
+          </Link>
+        </div>
+      )}
 
       <form onSubmit={handleSave}>
         <div>
@@ -53,6 +103,7 @@ export default function CreateDeckPage() {
             value={deckName}
             onChange={(e) => setDeckName(e.target.value)}
             placeholder="Ex: Ma Deck Atraxa"
+            disabled={loading}
           />
         </div>
 
@@ -67,15 +118,29 @@ export default function CreateDeckPage() {
             value={deckList}
             onChange={(e) => setDeckList(e.target.value)}
             placeholder="1 Atraxa, Praetors' Voice&#10;1 Sol Ring&#10;1 Counterspell&#10;..."
+            disabled={loading}
           />
         </div>
 
+        {error && (
+          <div style={{
+            background: '#ff6b6b',
+            color: '#fff',
+            padding: '0.75rem',
+            borderRadius: '6px',
+            marginBottom: '1rem',
+            fontSize: '0.9rem',
+          }}>
+            {error}
+          </div>
+        )}
+
         <div>
-          <button type="submit">
-            {saved ? 'Sauvegardé!' : 'Sauvegarder le Deck'}
+          <button type="submit" disabled={loading || !user}>
+            {loading ? 'Sauvegarde en cours...' : saved ? 'Sauvegardé!' : 'Sauvegarder le Deck'}
           </button>
-          <Link href="/">
-            <button type="button" style={{ background: '#404050', marginLeft: '0' }}>
+          <Link href="/decks">
+            <button type="button" style={{ background: '#404050', marginLeft: '0' }} disabled={loading}>
               Annuler
             </button>
           </Link>
