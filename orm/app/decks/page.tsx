@@ -81,30 +81,36 @@ export default function DecksPage() {
   useEffect(() => {
     if (expandedDeckId === null) return
 
-    // Créer un observer pour charger les images au scrolling
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            const cardName = entry.target.getAttribute('data-card-name')
-            if (cardName && !cardImages.has(cardName)) {
-              // Charger cette carte
-              loadSingleCard(cardName)
+    // Petit délai pour que le DOM soit bien rendu
+    const timeoutId = setTimeout(() => {
+      // Créer un observer pour charger les images au scrolling
+      const observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              const cardName = entry.target.getAttribute('data-card-name')
+              if (cardName && !cardImages.has(cardName)) {
+                // Charger cette carte
+                loadSingleCard(cardName)
+              }
             }
-          }
-        })
-      },
-      { rootMargin: '100px' } // Commencer à charger 100px avant d'être visible
-    )
+          })
+        },
+        { rootMargin: '50px' } // Commencer à charger 50px avant d'être visible
+      )
 
-    // Observer tous les placeholders non chargés
-    const placeholders = document.querySelectorAll('[data-card-placeholder]')
-    placeholders.forEach(el => observer.observe(el))
+      // Observer tous les placeholders non chargés
+      const placeholders = document.querySelectorAll('[data-card-placeholder]:not([data-loaded])')
+      placeholders.forEach(el => observer.observe(el))
 
-    return () => {
-      placeholders.forEach(el => observer.unobserve(el))
-    }
-  }, [expandedDeckId, cardImages])
+      return () => {
+        placeholders.forEach(el => observer.unobserve(el))
+        observer.disconnect()
+      }
+    }, 100)
+
+    return () => clearTimeout(timeoutId)
+  }, [expandedDeckId])
 
   const loadSingleCard = async (cardName: string) => {
     if (cardImages.has(cardName)) return
@@ -118,6 +124,9 @@ export default function DecksPage() {
         } else {
           setCardImages(prev => new Map(prev).set(cardName, null))
         }
+        // Marquer l'élément comme chargé
+        const placeholders = document.querySelectorAll(`[data-card-name="${cardName}"]`)
+        placeholders.forEach(el => el.setAttribute('data-loaded', 'true'))
       }
     } catch (error) {
       console.error(`Error loading ${cardName}:`, error)
