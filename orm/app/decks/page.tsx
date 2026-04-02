@@ -77,47 +77,53 @@ export default function DecksPage() {
       .filter(card => card.name)
   }
 
-  // Charger les images du deck quand on l'ouvre
+  // Charger les images du deck quand on l'ouvre (lazy loading avec IntersectionObserver)
   useEffect(() => {
     if (expandedDeckId === null) return
-    if (loadedDecksRef.current.has(expandedDeckId)) return // Déjà chargé
 
-    const loadCardImages = async () => {
-      const deck = decks.find(d => d.id === expandedDeckId)
-      if (!deck) return
-
-      const cards = parseDecklist(deck.list)
-      const uniqueCardNames = [...new Set(cards.map(c => c.name))]
-
-      // Envoyer toutes les cartes au serveur - il retournera le cache + nouvelles
-      if (uniqueCardNames.length > 0) {
-        try {
-          const response = await fetch('/api/cards/batch', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ cardNames: uniqueCardNames })
-          })
-
-          if (response.ok) {
-            const data = await response.json()
-            setCardImages(prev => {
-              const newImages = new Map(prev)
-              for (const [cardName, imageUrl] of Object.entries(data.images)) {
-                newImages.set(cardName, imageUrl as string | null)
-              }
-              return newImages
-            })
+    // Créer un observer pour charger les images au scrolling
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            const cardName = entry.target.getAttribute('data-card-name')
+            if (cardName && !cardImages.has(cardName)) {
+              // Charger cette carte
+              loadSingleCard(cardName)
+            }
           }
-        } catch (error) {
-          console.error('Error fetching card images:', error)
+        })
+      },
+      { rootMargin: '100px' } // Commencer à charger 100px avant d'être visible
+    )
+
+    // Observer tous les placeholders non chargés
+    const placeholders = document.querySelectorAll('[data-card-placeholder]')
+    placeholders.forEach(el => observer.observe(el))
+
+    return () => {
+      placeholders.forEach(el => observer.unobserve(el))
+    }
+  }, [expandedDeckId, cardImages])
+
+  const loadSingleCard = async (cardName: string) => {
+    if (cardImages.has(cardName)) return
+
+    try {
+      const response = await fetch('/api/cards/image?name=' + encodeURIComponent(cardName))
+      if (response.ok) {
+        const data = await response.json()
+        if (data.imageUrl) {
+          setCardImages(prev => new Map(prev).set(cardName, data.imageUrl))
+        } else {
+          setCardImages(prev => new Map(prev).set(cardName, null))
         }
       }
-
-      loadedDecksRef.current.add(expandedDeckId)
+    } catch (error) {
+      console.error(`Error loading ${cardName}:`, error)
+      setCardImages(prev => new Map(prev).set(cardName, null))
     }
-
-    loadCardImages()
-  }, [expandedDeckId, decks])
+  }
 
   const handleExpandDeck = (deckId: number) => {
     if (expandedDeckId === deckId) {
@@ -266,6 +272,8 @@ export default function DecksPage() {
                                 />
                               ) : (
                                 <div
+                                  data-card-placeholder
+                                  data-card-name={card.name}
                                   style={{
                                     width: '100px',
                                     height: '140px',

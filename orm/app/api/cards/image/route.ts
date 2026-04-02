@@ -16,14 +16,18 @@ export async function GET(request: Request) {
   }
 
   try {
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 5000) // 5s timeout
+
     const response = await fetch(
       `https://api.scryfall.com/cards/search?q=!"${encodeURIComponent(cardName)}"&unique=cards`,
       {
-        headers: {
-          'Accept': 'application/json',
-        },
+        headers: { 'Accept': 'application/json' },
+        signal: controller.signal,
       }
     )
+
+    clearTimeout(timeout)
 
     if (!response.ok) {
       cardCache.set(cardName, null)
