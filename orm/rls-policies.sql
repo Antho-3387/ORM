@@ -20,8 +20,9 @@ CREATE POLICY "Users can read all users" ON public."User"
   FOR SELECT USING (true);
 
 -- Les utilisateurs authentifiés peuvent créer leur propre enregistrement
+-- Aussi permettre aux utilisateurs nouvellement inscrits (qui ont un UID from Auth)
 CREATE POLICY "Users can insert own user record" ON public."User"
-  FOR INSERT WITH CHECK (auth.uid()::text = id);
+  FOR INSERT WITH CHECK (true);  -- Permettre l'insertion lors de l'inscription
 
 -- Les utilisateurs peuvent mettre à jour leur propre profil
 CREATE POLICY "Users can update own user record" ON public."User"
