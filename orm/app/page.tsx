@@ -1,4 +1,7 @@
+'use client'
+
 import Link from 'next/link'
+import React from 'react'
 
 export default function Home() {
   return (
@@ -52,10 +55,13 @@ export default function Home() {
 
 function DecksPreview() {
   const [decks, setDecks] = React.useState<any[]>([])
+  const [mounted, setMounted] = React.useState(false)
 
   React.useEffect(() => {
+    setMounted(true)
     const loadDecks = () => {
       try {
+        if (typeof window === 'undefined') return
         const allItems = { ...localStorage }
         const savedDecks: any[] = []
 
@@ -79,6 +85,14 @@ function DecksPreview() {
 
   const countCards = (list: string) => {
     return list.split('\n').filter(line => line.trim() && /^\d+\s+/.test(line.trim())).length
+  }
+
+  if (!mounted) {
+    return (
+      <p style={{ color: '#a0a0b0' }}>
+        Chargement...
+      </p>
+    )
   }
 
   if (decks.length === 0) {
@@ -120,5 +134,3 @@ function DecksPreview() {
     </div>
   )
 }
-
-import React from 'react'
