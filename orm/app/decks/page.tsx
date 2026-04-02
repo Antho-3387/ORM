@@ -30,15 +30,7 @@ export default function DecksPage() {
     try {
       let query = supabase
         .from('Deck')
-        .select(`
-          id,
-          name,
-          list,
-          description,
-          userId,
-          createdAt,
-          user:User(email, name)
-        `)
+        .select('id,name,list,description,userId,createdAt,user:User(email,name)')
 
       if (filter === 'mine' && user) {
         // Use user.id directly - Supabase handles UUID comparison

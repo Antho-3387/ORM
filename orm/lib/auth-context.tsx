@@ -31,12 +31,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (isMounted && session?.user) {
           console.log('Found session:', session.user.email)
           // Get user from DB
-          const { data: userData } = await supabase
-            .from('User')
-            .select('*')
-            .eq('id', session.user.id)
-            .single()
-          setUser(userData || null)
+          try {
+            const { data: userData, error: userError } = await supabase
+              .from('User')
+              .select('*')
+              .eq('id', session.user.id)
+              .single()
+            if (userError) {
+              console.error('User fetch error:', userError)
+              setUser(null)
+            } else {
+              setUser(userData || null)
+            }
+          } catch (err) {
+            console.error('User fetch exception:', err)
+            setUser(null)
+          }
         }
       } catch (error) {
         console.error('Session check error:', error)

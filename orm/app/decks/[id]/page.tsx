@@ -34,14 +34,7 @@ export default function DeckDetailsPage({ params }: DeckDetailsPageProps) {
       setLoading(true)
       const { data, error: dbError } = await supabase
         .from('Deck')
-        .select(`
-          id,
-          name,
-          list,
-          userId,
-          createdAt,
-          user:User(email, name)
-        `)
+        .select('id,name,list,userId,createdAt,user:User(email,name)')
         .eq('id', id)
         .single()
 
