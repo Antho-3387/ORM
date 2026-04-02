@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Magic Decks",
+  title: "Magic Decks ORM",
   description: "Manage your Magic: The Gathering deck collection",
 };
 
