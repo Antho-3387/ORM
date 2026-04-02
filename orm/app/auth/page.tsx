@@ -26,10 +26,12 @@ export default function AuthPage() {
       } else {
         await register(email, password, name)
       }
+      // Small delay to ensure session is fully established
+      await new Promise(resolve => setTimeout(resolve, 500))
       router.push('/decks')
     } catch (err: any) {
-      setError(err.message)
-    } finally {
+      console.error('Auth error:', err)
+      setError(err.message || 'Erreur d\'authentification')
       setLoading(false)
     }
   }

@@ -21,13 +21,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // S'enregistrer aux changements d'authentification Supabase
   useEffect(() => {
-    const { subscription } = onAuthStateChange((authUser) => {
-      setUser(authUser)
-      setLoading(false)
-    }) || {}
+    let isMounted = true
+    let unsubscribe: (() => void) | undefined
+
+    try {
+      const { subscription } = onAuthStateChange((authUser) => {
+        if (isMounted) {
+          console.log('Auth state changed:', authUser)
+          setUser(authUser)
+          setLoading(false)
+        }
+      }) || {}
+      unsubscribe = subscription?.unsubscribe
+    } catch (error) {
+      console.error('Auth subscription error:', error)
+      if (isMounted) {
+        setLoading(false)
+      }
+    }
+
+    // Timeout: ensure loading ends after 5s
+    const timeout = setTimeout(() => {
+      if (isMounted) {
+        console.warn('Auth loading timeout - setting loading to false')
+        setLoading(false)
+      }
+    }, 5000)
 
     return () => {
-      subscription?.unsubscribe()
+      isMounted = false
+      clearTimeout(timeout)
+      unsubscribe?.()
     }
   }, [])
 
