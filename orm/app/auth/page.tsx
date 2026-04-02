@@ -2,18 +2,18 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
 import { useAuth } from '@/lib/auth-context'
+import Link from 'next/link'
 
 export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [name, setName] = useState('')
-  const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const { login, register } = useAuth()
+  const [error, setError] = useState('')
   const router = useRouter()
+  const { login, register } = useAuth()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -27,27 +27,152 @@ export default function AuthPage() {
         await register(email, password, name)
       }
       router.push('/decks')
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred')
+    } catch (err: any) {
+      setError(err.message)
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="min-h-screen bg-white flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">
-            {isLogin ? 'Welcome Back' : 'Create Account'}
+    <main style={{ minHeight: '100vh', background: '#1a1a2e', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}>
+      <div style={{ width: '100%', maxWidth: '400px' }}>
+        <div style={{ background: '#16213e', borderRadius: '12px', padding: '2rem', border: '1px solid #404050' }}>
+          <h1 style={{ fontSize: '2rem', fontWeight: '700', color: '#ffffff', marginBottom: '2rem', textAlign: 'center' }}>
+            {isLogin ? 'Se connecter' : 'S\'inscrire'}
           </h1>
-          <p className="text-gray-600">
-            {isLogin ? 'Sign in to your account' : 'Join to manage your decks'}
-          </p>
-        </div>
 
-        {/* Error */}
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            {!isLogin && (
+              <div>
+                <label style={{ color: '#e0e0e0', display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem' }}>
+                  Nom
+                </label>
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Votre nom"
+                  required={!isLogin}
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem',
+                    background: '#0f3460',
+                    color: '#e0e0e0',
+                    border: '1px solid #404050',
+                    borderRadius: '6px',
+                    fontSize: '1rem',
+                    boxSizing: 'border-box',
+                  }}
+                />
+              </div>
+            )}
+
+            <div>
+              <label style={{ color: '#e0e0e0', display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem' }}>
+                Email
+              </label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="votre@email.com"
+                required
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  background: '#0f3460',
+                  color: '#e0e0e0',
+                  border: '1px solid #404050',
+                  borderRadius: '6px',
+                  fontSize: '1rem',
+                  boxSizing: 'border-box',
+                }}
+              />
+            </div>
+
+            <div>
+              <label style={{ color: '#e0e0e0', display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem' }}>
+                Mot de passe
+              </label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                required
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  background: '#0f3460',
+                  color: '#e0e0e0',
+                  border: '1px solid #404050',
+                  borderRadius: '6px',
+                  fontSize: '1rem',
+                  boxSizing: 'border-box',
+                }}
+              />
+            </div>
+
+            {error && (
+              <div style={{
+                background: '#ff6b6b',
+                color: '#fff',
+                padding: '0.75rem',
+                borderRadius: '6px',
+                fontSize: '0.9rem',
+              }}>
+                {error}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={loading}
+              style={{
+                padding: '0.75rem',
+                background: '#00d4ff',
+                color: '#000',
+                border: 'none',
+                borderRadius: '6px',
+                fontWeight: '600',
+                fontSize: '1rem',
+                cursor: loading ? 'not-allowed' : 'pointer',
+                opacity: loading ? 0.6 : 1,
+                marginTop: '0.5rem',
+              }}
+            >
+              {loading ? 'Chargement...' : isLogin ? 'Se connecter' : 'S\'inscrire'}
+            </button>
+          </form>
+
+          <div style={{ marginTop: '1.5rem', color: '#a0a0a0', textAlign: 'center', fontSize: '0.9rem' }}>
+            {isLogin ? "Pas de compte ? " : "Déjà inscrit ? "}
+            <button
+              onClick={() => {
+                setIsLogin(!isLogin)
+                setError('')
+              }}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#00d4ff',
+                cursor: 'pointer',
+                textDecoration: 'underline',
+              }}
+            >
+              {isLogin ? 'S\'inscrire' : 'Se connecter'}
+            </button>
+          </div>
+
+          <Link href="/" style={{ display: 'block', marginTop: '1rem', textAlign: 'center', color: '#a0a0a0', textDecoration: 'none', fontSize: '0.9rem' }}>
+            ← Retour à l'accueil
+          </Link>
+        </div>
+      </div>
+    </main>
+  )
+}
         {error && (
           <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
             {error}

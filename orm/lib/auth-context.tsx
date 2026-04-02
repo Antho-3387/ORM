@@ -1,19 +1,15 @@
 'use client'
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
-
-interface User {
-  id: string
-  email: string
-  name?: string
-}
+import { signIn, signUp, signOut, onAuthStateChange } from './auth-service'
+import { User } from './auth-service'
 
 interface AuthContextType {
   user: User | null
   loading: boolean
   login: (email: string, password: string) => Promise<void>
   register: (email: string, password: string, name: string) => Promise<void>
-  logout: () => void
+  logout: () => Promise<void>
   isAuthenticated: boolean
 }
 
@@ -23,56 +19,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
 
-  // Récupère l'utilisateur au chargement
+  // S'enregistrer aux changements d'authentification Supabase
   useEffect(() => {
-    const stored = localStorage.getItem('user')
-    if (stored) {
-      try {
-        setUser(JSON.parse(stored))
-      } catch (e) {
-        localStorage.removeItem('user')
-      }
+    const { subscription } = onAuthStateChange((authUser) => {
+      setUser(authUser)
+      setLoading(false)
+    }) || {}
+
+    return () => {
+      subscription?.unsubscribe()
     }
-    setLoading(false)
   }, [])
 
   const register = async (email: string, password: string, name: string) => {
-    const res = await fetch('/api/auth/register', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password, name }),
-    })
-
-    if (!res.ok) {
-      const error = await res.json()
-      throw new Error(error.error || 'Registration failed')
+    const { user: newUser, error } = await signUp(email, password, name)
+    if (error) {
+      throw new Error(error)
     }
-
-    const userData = await res.json()
-    setUser(userData)
-    localStorage.setItem('user', JSON.stringify(userData))
+    setUser(newUser)
   }
 
   const login = async (email: string, password: string) => {
-    const res = await fetch('/api/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
-    })
-
-    if (!res.ok) {
-      const error = await res.json()
-      throw new Error(error.error || 'Login failed')
+    const { user: authUser, error } = await signIn(email, password)
+    if (error) {
+      throw new Error(error)
     }
-
-    const userData = await res.json()
-    setUser(userData)
-    localStorage.setItem('user', JSON.stringify(userData))
+    setUser(authUser)
   }
 
-  const logout = () => {
+  const logout = async () => {
+    const { error } = await signOut()
+    if (error) {
+      throw new Error(error)
+    }
     setUser(null)
-    localStorage.removeItem('user')
   }
 
   return (
@@ -89,6 +69,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       {children}
     </AuthContext.Provider>
   )
+}
+
+export function useAuth() {
+  const context = useContext(AuthContext)
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider')
+  }
+  return context
 }
 
 export function useAuth() {
