@@ -1,9 +1,6 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { CardImage } from '@/components/CardImage'
-import { CardGrid } from '@/components/CardGrid'
-import { FilterSidebar, FilterState } from '@/components/FilterSidebar'
 
 // Mock data - will be replaced with real Scryfall API
 const ALL_CARDS = [
@@ -100,12 +97,8 @@ const ALL_CARDS = [
 ]
 
 export default function CardsPage() {
-  const [filters, setFilters] = useState<FilterState>({
-    colors: [],
-    types: [],
-    manaRange: [0, 12],
+  const [filters, setFilters] = useState({
     searchQuery: '',
-    format: 'All Formats',
   })
 
   // Filter and search cards
@@ -118,71 +111,82 @@ export default function CardsPage() {
       ) {
         return false
       }
-
-      // Color filter
-      if (filters.colors.length > 0) {
-        const cardColors = card.colors.split('')
-        const hasColor = filters.colors.some((c) => cardColors.includes(c))
-        if (!hasColor && filters.colors.length > 0) return false
-      }
-
-      // Type filter
-      if (filters.types.length > 0) {
-        if (!filters.types.some((t) => card.type.includes(t))) return false
-      }
-
-      // Mana range filter
-      if (
-        card.manaValue !== null &&
-        (card.manaValue < filters.manaRange[0] || card.manaValue > filters.manaRange[1])
-      ) {
-        return false
-      }
-
       return true
     })
   }, [filters])
 
   return (
-    <div className="min-h-screen bg-slate-950">
-      <div className="flex">
-        {/* Sidebar */}
-        <FilterSidebar onFilterChange={setFilters} />
+    <main style={{ minHeight: 'calc(100vh - 60px)', background: '#1a1a2e', padding: '2rem' }}>
+      <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
+        {/* Header */}
+        <div style={{ marginBottom: '2rem' }}>
+          <h1 style={{ fontSize: '2.5rem', fontWeight: '700', color: '#ffffff', marginBottom: '1rem' }}>
+            Magic Cards
+          </h1>
+          <p style={{ color: '#b0b0c0', fontSize: '1rem' }}>
+            Showing {filteredCards.length} cards {filters.searchQuery && `matching "${filters.searchQuery}"`}
+          </p>
+        </div>
 
-        {/* Main Content */}
-        <main className="flex-1 py-8 px-6">
-          {/* Header */}
-          <div className="mb-8">
-            <h1 className="text-3xl md:text-4xl font-bold text-slate-100 mb-2">
-              Card Collection
-            </h1>
-            <p className="text-slate-400">
-              Showing {filteredCards.length} cards {filters.searchQuery && `matching "${filters.searchQuery}"`}
+        {/* Search Bar */}
+        <div style={{ marginBottom: '2rem' }}>
+          <input
+            type="text"
+            placeholder="Search cards..."
+            value={filters.searchQuery}
+            onChange={(e) => setFilters({ ...filters, searchQuery: e.target.value })}
+            style={{ width: '100%' }}
+          />
+        </div>
+
+        {/* Results */}
+        {filteredCards.length > 0 ? (
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))',
+            gap: '1.5rem',
+            justifyItems: 'center'
+          }}>
+            {filteredCards.map((card) => (
+              <div key={card.id} style={{ textAlign: 'center' }}>
+                <img 
+                  src={card.imageUrl} 
+                  alt={card.name}
+                  style={{
+                    width: '120px',
+                    height: 'auto',
+                    borderRadius: '6px',
+                    border: '1px solid #404050',
+                    cursor: 'pointer',
+                    transition: 'transform 0.2s',
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
+                  onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                />
+                <p style={{ fontSize: '0.9rem', color: '#e0e0e0', marginTop: '0.5rem' }}>
+                  {card.name}
+                </p>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '4rem 2rem',
+            textAlign: 'center'
+          }}>
+            <h2 style={{ fontSize: '1.5rem', color: '#e0e0e0', marginBottom: '1rem' }}>
+              No cards found
+            </h2>
+            <p style={{ color: '#b0b0c0' }}>
+              Try adjusting your search query.
             </p>
           </div>
-
-          {/* Results */}
-          {filteredCards.length > 0 ? (
-            <CardGrid columns={5}>
-              {filteredCards.map((card) => (
-                <CardImage
-                  key={card.id}
-                  {...card}
-                  href={`/cards/${card.id}`}
-                />
-              ))}
-            </CardGrid>
-          ) : (
-            <div className="flex flex-col items-center justify-center py-16 text-center">
-              <div className="text-6xl mb-4">🔍</div>
-              <h2 className="text-2xl font-semibold text-slate-200 mb-2">No cards found</h2>
-              <p className="text-slate-400 max-w-md">
-                Try adjusting your filters or search query to find what you're looking for.
-              </p>
-            </div>
-          )}
-        </main>
+        )}
       </div>
-    </div>
+    </main>
   )
 }
