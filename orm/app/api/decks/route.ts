@@ -1,53 +1,72 @@
 import { NextRequest, NextResponse } from 'next/server'
-import prisma from '@/lib/prisma'
-import { searchCards } from '@/lib/scryfall'
+import { supabase } from '@/lib/supabase'
 
 /**
- * GET /api/decks - Liste tous les decks de l'utilisateur
+ * GET /api/decks - Récupérer tous les decks ou les decks de l'utilisateur
+ * Query params: userId (optionnel) pour filtrer par utilisateur
  */
-export async function GET(request: NextRequest) {
+export async function GET(req: NextRequest) {
   try {
-    const userId = request.headers.get('x-user-id')
+    const { searchParams } = new URL(req.url)
+    const userId = searchParams.get('userId')
 
-    if (!userId) {
-      // Si pas d'authentification, retourne une liste vide au lieu d'une erreur
-      return NextResponse.json([])
+    let query = supabase
+      .from('Deck')
+      .select(`
+        id,
+        name,
+        description,
+        userId,
+        createdAt,
+        user:User(email, name)
+      `)
+
+    if (userId) {
+      query = query.eq('userId', userId)
     }
 
-    const decks = await prisma.deck.findMany({
-      where: { userId },
-      include: {
-        cards: {
-          include: {
-            card: true,
-          },
-        },
-      },
-      orderBy: { createdAt: 'desc' },
-    })
+    const { data, error } = await query.order('createdAt', { ascending: false })
 
-    return NextResponse.json(decks)
-  } catch (error) {
-    console.error('Error fetching decks:', error)
-    return NextResponse.json(
-      { error: 'Erreur lors de la récupération des decks' },
-      { status: 500 }
-    )
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+
+    return NextResponse.json(data || [])
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }
 
 /**
- * POST /api/decks - Crée un nouveau deck
+ * POST /api/decks - Créer un nouveau deck
  */
-export async function POST(request: NextRequest) {
+export async function POST(req: NextRequest) {
   try {
-    const userId = request.headers.get('x-user-id')
+    const body = await req.json()
+    const { name, description, userId } = body
 
-    if (!userId) {
+    if (!name || !userId) {
       return NextResponse.json(
-        { error: 'Non authentifié' },
-        { status: 401 }
+        { error: 'name et userId sont requis' },
+        { status: 400 }
       )
+    }
+
+    const { data, error } = await supabase
+      .from('Deck')
+      .insert([{ name, description, userId }])
+      .select()
+      .single()
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+
+    return NextResponse.json(data, { status: 201 })
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+}
     }
 
     const { name, description, decklistText } = await request.json()
