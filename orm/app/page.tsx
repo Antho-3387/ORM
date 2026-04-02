@@ -1,225 +1,338 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import Image from 'next/image'
-import { useState } from 'react'
-import { MagicCard } from '@/components/MagicCard'
+import { PremiumNavbar } from '@/components/PremiumNavbar'
 
-// Popular decks data
-const POPULAR_DECKS = [
-  {
-    id: '1',
-    name: 'Atraxa Infect',
-    commander: 'Atraxa, Praetors\' Voice',
-    image: 'https://images.scryfall.io/cards/large/front/4/8/483c1fd8-37b4-43ac-9f60-979319ba33a8.jpg?1599768957',
-  },
-  {
-    id: '2',
-    name: 'Yuriko Turns',
-    commander: 'Yuriko, the Tiger\'s Shadow',
-    image: 'https://images.scryfall.io/cards/large/front/3/2/323daa1b-e8bc-4f85-9f49-ab1c85c0b451.jpg?1599706203',
-  },
-  {
-    id: '3',
-    name: 'Prosper Rakdos',
-    commander: 'Prosper, Tomb-Bound',
-    image: 'https://images.scryfall.io/cards/large/front/d/7/d7b40c3c-6b61-47b0-b044-b1f45e75eae5.jpg?1582605400',
-  },
-  {
-    id: '4',
-    name: 'Muldrotha Control',
-    commander: 'Muldrotha, the Graywolf',
-    image: 'https://images.scryfall.io/cards/large/front/c/6/c654737d-34ac-42ff-ae27-3a3bbb930fc1.jpg?1591204580',
-  },
-]
+interface ScryfallCard {
+  id: string
+  name: string
+  image_uris?: {
+    normal: string
+    large: string
+  }
+  card_faces?: Array<{
+    name: string
+    image_uris?: {
+      normal: string
+      large: string
+    }
+  }>
+  mana_cost: string
+  cmc: number
+  type_line: string
+  color_identity: string[]
+}
 
-// Popular cards sample
-const POPULAR_CARDS = [
-  {
-    id: 'sol-ring',
-    name: 'Sol Ring',
-    image: 'https://images.scryfall.io/cards/large/front/e/6/e6211e3e-8494-40ba-b149-eb89e618e1d2.jpg?1699395241',
-    manaValue: 1,
-    colors: ['C'],
-  },
-  {
-    id: 'counterspell',
-    name: 'Counterspell',
-    image: 'https://images.scryfall.io/cards/large/front/1/9/1920dae4-fb92-412f-b8f9-4eca114b06ec.jpg?1599769051',
-    manaValue: 2,
-    colors: ['U'],
-  },
-  {
-    id: 'lightning-bolt',
-    name: 'Lightning Bolt',
-    image: 'https://images.scryfall.io/cards/large/front/c/e/ce711943-c1a1-43a0-8b97-8a547503537f.jpg?1601077628',
-    manaValue: 1,
-    colors: ['R'],
-  },
-  {
-    id: 'swords-to-plowshares',
-    name: 'Swords to Plowshares',
-    image: 'https://images.scryfall.io/cards/large/front/b/e/be2b4177-e47c-4dde-9322-b9876749c6e6.jpg?1611967006',
-    manaValue: 1,
-    colors: ['W'],
-  },
-  {
-    id: 'demonic-tutor',
-    name: 'Demonic Tutor',
-    image: 'https://images.scryfall.io/cards/large/front/3/b/3bdbc3c9-8a89-4f0a-961b-6ad563ce98c2.jpg?1599765488',
-    manaValue: 2,
-    colors: ['B'],
-  },
-  {
-    id: 'green-sun-zenith',
-    name: 'Green Sun\'s Zenith',
-    image: 'https://images.scryfall.io/cards/large/front/0/1/01794178-cf41-454c-ac37-1d8b3e638378.jpg?1580014961',
-    manaValue: 2,
-    colors: ['G'],
-  },
-]
+interface Deck {
+  id: string
+  name: string
+  commander: string
+  cardCount: number
+  cards: Array<{
+    id: string
+    image?: string
+  }>
+}
 
 export default function HomePage() {
-  const [hoveredDeck, setHoveredDeck] = useState<string | null>(null)
+  const [popularCards, setPopularCards] = useState<ScryfallCard[]>([])
+  const [trendingDecks, setTrendingDecks] = useState<Deck[]>([])
+  const [loading, setLoading] = useState(true)
+
+  // Fetch popular Magic cards
+  const fetchPopularCards = async () => {
+    try {
+      const response = await fetch('https://api.scryfall.com/cards/search?q=is:iconic&order=edhrec&unique=cards')
+      if (response.ok) {
+        const data = await response.json()
+        setPopularCards(data.data?.slice(0, 6) || [])
+      }
+    } catch (error) {
+      console.error('Error fetching popular cards:', error)
+    }
+  }
+
+  // Fetch trending decks (simulated with popular commanders)
+  const fetchTrendingDecks = async () => {
+    try {
+      const commanders = ['Cpt. Jhoira', 'Atraxa', 'The First Sliver', 'Ur-Dragon', 'Omnath']
+      const deckPromises = commanders.map(async (commander) => {
+        const response = await fetch(
+          `https://api.scryfall.com/cards/search?q=%21"${commander}"&unique=cards`
+        )
+
+        if (response.ok) {
+          const data = await response.json()
+          const cards = data.data?.slice(0, 3) || []
+          return {
+            id: Math.random().toString(),
+            name: `${commander} Deck`,
+            commander: commander,
+            cardCount: Math.floor(Math.random() * 40) + 60,
+            cards: cards.map((card: any) => ({
+              id: card.id,
+              image: card.image_uris?.normal || card.card_faces?.[0]?.image_uris?.normal,
+            })),
+          }
+        }
+        return null
+      })
+
+      const decks = (await Promise.all(deckPromises)).filter(Boolean) as Deck[]
+      setTrendingDecks(decks)
+    } catch (error) {
+      console.error('Error fetching decks:', error)
+    }
+  }
+
+  useEffect(() => {
+    const loadData = async () => {
+      setLoading(true)
+      await Promise.all([fetchPopularCards(), fetchTrendingDecks()])
+      setLoading(false)
+    }
+    loadData()
+  }, [])
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900">
+    <main className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900/10 to-slate-900">
+      <PremiumNavbar />
+
       {/* Hero Section */}
       <section className="relative overflow-hidden pt-20 pb-32">
-        {/* Gradient Orbs */}
-        <div className="absolute inset-0">
-          <div className="absolute top-20 left-10 w-96 h-96 bg-purple-600/20 rounded-full blur-3xl" />
-          <div className="absolute bottom-0 right-10 w-96 h-96 bg-blue-600/20 rounded-full blur-3xl" />
+        {/* Gradient Background */}
+        <div className="absolute inset-0 -z-10">
+          <div className="absolute top-0 left-1/4 w-96 h-96 bg-purple-600/20 rounded-full blur-3xl" />
+          <div className="absolute bottom-20 right-1/4 w-96 h-96 bg-blue-600/20 rounded-full blur-3xl" />
         </div>
 
-        <div className="container-clean relative z-10">
-          <div className="max-w-3xl">
-            <h1 className="text-5xl md:text-6xl font-bold mb-6">
-              <span className="bg-gradient-to-r from-purple-400 via-blue-400 to-purple-400 bg-clip-text text-transparent">
-                Master the Meta
+        <div className="container-clean">
+          <div className="text-center mb-12">
+            <div className="inline-block px-4 py-2 bg-purple-500/10 border border-purple-500/30 rounded-full mb-6">
+              <span className="text-sm font-semibold bg-gradient-to-r from-purple-300 to-blue-300 bg-clip-text text-transparent">
+                ✨ Build Your Perfect Deck
               </span>
+            </div>
+
+            <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-white mb-6 leading-tight">
+              Master the Multiverse
             </h1>
-            <p className="text-xl text-slate-300 mb-8 leading-relaxed">
-              Discover powerful Magic decks, search millions of cards, and build your next championship-winning strategy.
+
+            <p className="text-xl text-slate-300 mb-10 max-w-3xl mx-auto">
+              Explore, build, and optimize Magic: The Gathering decks with real-time card search, visual deck building, and powerful analytics.
             </p>
-            <div className="flex gap-4">
+
+            {/* CTA Buttons */}
+            <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
               <Link
                 href="/builder"
-                className="px-8 py-3 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-semibold rounded-lg transition-all shadow-lg shadow-purple-500/20 hover:shadow-purple-500/40"
+                className="px-8 py-3 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-bold rounded-lg transition-all shadow-lg shadow-purple-500/30 hover:shadow-purple-500/50"
               >
                 Start Building
               </Link>
               <Link
                 href="/decks"
-                className="px-8 py-3 border border-slate-600 hover:border-purple-400/50 text-slate-300 hover:text-purple-300 font-semibold rounded-lg transition-all hover:bg-purple-500/10"
+                className="px-8 py-3 border-2 border-slate-600 hover:border-purple-500 text-white font-bold rounded-lg transition-all hover:bg-purple-500/10"
               >
-                Browse Decks
+                Explore Decks
               </Link>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Popular Decks */}
-      <section className="py-20 border-t border-slate-700/30">
+      {/* Trending Decks Section */}
+      <section className="py-20">
         <div className="container-clean">
-          <h2 className="text-3xl font-bold mb-12">
-            <span className="bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
-              Popular Decks
-            </span>
-          </h2>
+          <div className="mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold text-white mb-3">Trending Decks</h2>
+            <p className="text-slate-400">Popular deck archetypes in the community</p>
+          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {POPULAR_DECKS.map((deck) => (
-              <Link key={deck.id} href={`/deck/${deck.id}`}>
-                <div
-                  className="group relative overflow-hidden rounded-lg glass glass-hover cursor-pointer"
-                  onMouseEnter={() => setHoveredDeck(deck.id)}
-                  onMouseLeave={() => setHoveredDeck(null)}
+          {loading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="h-64 glass rounded-xl animate-pulse" />
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {trendingDecks.map((deck) => (
+                <Link
+                  key={deck.id}
+                  href={`/decks/${deck.id}`}
+                  className="group glass rounded-xl overflow-hidden hover:border-purple-500/50 transition-all hover:shadow-lg hover:shadow-purple-500/20"
                 >
-                  {/* Deck Image */}
-                  <div className="relative h-64 overflow-hidden">
-                    <Image
-                      src={deck.image}
-                      alt={deck.name}
-                      fill
-                      className="object-cover group-hover:scale-110 transition-transform duration-300"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 to-transparent" />
+                  {/* Deck Card Images */}
+                  <div className="relative h-48 overflow-hidden">
+                    <div className="grid grid-cols-3 gap-0.5 p-2">
+                      {deck.cards.map((card, idx) => (
+                        <div
+                          key={idx}
+                          className="relative aspect-[2/3] rounded overflow-hidden group/card"
+                        >
+                          {card.image ? (
+                            <img
+                              src={card.image}
+                              alt="Deck card"
+                              className="w-full h-full object-cover group-hover/card:scale-110 transition-transform duration-300"
+                            />
+                          ) : (
+                            <div className="w-full h-full bg-gradient-to-br from-slate-700 to-slate-800" />
+                          )}
+                        </div>
+                      ))}
+                    </div>
                   </div>
 
                   {/* Deck Info */}
                   <div className="p-4">
-                    <h3 className="text-lg font-bold text-white mb-1">{deck.name}</h3>
-                    <p className="text-sm text-slate-400 mb-4">{deck.commander}</p>
-                    <button
-                      onClick={(e) => {
-                        e.preventDefault()
-                      }}
-                      className="w-full py-2 bg-purple-600/50 hover:bg-purple-600 text-white rounded-lg text-sm font-medium transition-all border border-purple-500/30"
-                    >
-                      View Deck
-                    </button>
+                    <h3 className="text-lg font-bold text-white mb-2 group-hover:text-purple-300 transition">
+                      {deck.name}
+                    </h3>
+                    <div className="space-y-1">
+                      <p className="text-sm text-slate-400">
+                        <span className="font-semibold text-slate-300">Commander:</span> {deck.commander}
+                      </p>
+                      <p className="text-sm text-slate-400">
+                        <span className="font-semibold text-slate-300">Cards:</span> {deck.cardCount}
+                      </p>
+                    </div>
                   </div>
 
-                  {/* Glow on Hover */}
-                  {hoveredDeck === deck.id && (
-                    <div className="absolute inset-0 rounded-lg shadow-[inset_0_0_30px_rgba(168,85,247,0.2)]" />
-                  )}
-                </div>
-              </Link>
-            ))}
-          </div>
+                  {/* Hover Glow */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-purple-600/0 to-transparent opacity-0 group-hover:opacity-20 transition-opacity" />
+                </Link>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
-      {/* Popular Cards */}
+      {/* Popular Cards Gallery */}
+      <section className="py-20">
+        <div className="container-clean">
+          <div className="mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold text-white mb-3">Popular Cards</h2>
+            <p className="text-slate-400">Most iconic Magic cards</p>
+          </div>
+
+          {loading ? (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <div key={i} className="aspect-[2/3] glass rounded-lg animate-pulse" />
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+              {popularCards.map((card) => {
+                const image = card.image_uris?.normal || card.card_faces?.[0]?.image_uris?.normal || ''
+
+                return (
+                  <a
+                    key={card.id}
+                    href={`https://scryfall.com/card/${card.id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="group relative rounded-lg overflow-hidden aspect-[2/3] hover:scale-105 transition-transform duration-300"
+                  >
+                    {image && (
+                      <img
+                        src={image}
+                        alt={card.name}
+                        className="w-full h-full object-cover"
+                      />
+                    )}
+
+                    {/* Hover Info */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-3">
+                      <p className="text-sm font-bold text-white">{card.name}</p>
+                      <p className="text-xs text-slate-300">{card.type_line}</p>
+                    </div>
+
+                    {/* Glow Effect */}
+                    {true && (
+                      <div className="absolute inset-0 rounded-lg opacity-0 group-hover:opacity-100 shadow-[0_0_20px_rgba(168,85,247,0.5)] transition-opacity" />
+                    )}
+                  </a>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* Features Section */}
       <section className="py-20 border-t border-slate-700/30">
         <div className="container-clean">
-          <h2 className="text-3xl font-bold mb-12">
-            <span className="bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
-              Staple Cards
-            </span>
-          </h2>
+          <h2 className="text-3xl md:text-4xl font-bold text-white mb-12 text-center">Why Choose ORM?</h2>
 
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            {POPULAR_CARDS.map((card) => (
-              <MagicCard
-                key={card.id}
-                id={card.id}
-                name={card.name}
-                imageUrl={card.image}
-                manaValue={card.manaValue}
-                colors={card.colors}
-                href={`/card/${card.id}`}
-              />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {[
+              {
+                icon: '⚡',
+                title: 'Live Search',
+                description: 'Search Scryfall powered by millions of Magic cards with real-time results',
+              },
+              {
+                icon: '🎨',
+                title: 'Visual Builder',
+                description: 'Build decks with real card images and see your deck come to life instantly',
+              },
+              {
+                icon: '📊',
+                title: 'Analytics',
+                description: 'Analyze mana curves, color distribution, and deck statistics at a glance',
+              },
+            ].map((feature, idx) => (
+              <div key={idx} className="glass rounded-xl p-6 hover:border-purple-500/30 transition">
+                <div className="text-4xl mb-4">{feature.icon}</div>
+                <h3 className="text-xl font-bold text-white mb-2">{feature.title}</h3>
+                <p className="text-slate-400">{feature.description}</p>
+              </div>
             ))}
           </div>
         </div>
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 border-t border-slate-700/30">
+      <section className="py-20">
         <div className="container-clean">
           <div className="glass rounded-2xl p-12 text-center relative overflow-hidden">
-            {/* Background Gradient */}
-            <div className="absolute inset-0 bg-gradient-to-r from-purple-600/20 to-blue-600/20" />
-
-            <div className="relative z-10">
-              <h2 className="text-3xl font-bold mb-4 text-white">Ready to build?</h2>
-              <p className="text-lg text-slate-300 mb-8 max-w-2xl mx-auto">
-                Use our powerful deck builder to search millions of cards and create your perfect deck in minutes.
-              </p>
-              <Link
-                href="/builder"
-                className="inline-block px-8 py-3 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-semibold rounded-lg transition-all shadow-lg shadow-purple-500/20 hover:shadow-purple-500/40"
-              >
-                Start Now
-              </Link>
+            <div className="absolute inset-0 -z-10">
+              <div className="absolute top-0 right-0 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl" />
             </div>
+
+            <h3 className="text-3xl md:text-4xl font-bold text-white mb-4">Ready to Build Your Deck?</h3>
+            <p className="text-slate-300 mb-8 max-w-2xl mx-auto">
+              Start building your ultimate Magic deck today with our powerful deck builder and Scryfall integration.
+            </p>
+
+            <Link
+              href="/builder"
+              className="inline-block px-8 py-3 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-bold rounded-lg transition-all shadow-lg shadow-purple-500/30 hover:shadow-purple-500/50"
+            >
+              Start Building Now
+            </Link>
           </div>
         </div>
       </section>
+
+      {/* Footer */}
+      <footer className="border-t border-slate-700/30 py-12">
+        <div className="container-clean">
+          <div className="text-center text-slate-400">
+            <p className="mb-2">ORM - Magic: The Gathering Deck Builder</p>
+            <p className="text-xs">
+              Magic: The Gathering is © Wizards of the Coast. Card data from{' '}
+              <a href="https://scryfall.com" target="_blank" rel="noopener noreferrer" className="text-purple-400 hover:text-purple-300">
+                Scryfall
+              </a>
+            </p>
+          </div>
+        </div>
+      </footer>
     </main>
   )
 }
