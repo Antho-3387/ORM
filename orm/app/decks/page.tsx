@@ -76,53 +76,38 @@ export default function DecksPage() {
       .filter(card => card.name)
   }
 
-  const fetchCardImage = async (cardName: string): Promise<string | undefined> => {
-    // Vérifier le cache
-    if (cardImages.has(cardName)) {
-      return cardImages.get(cardName)
-    }
-
-    try {
-      // Appeler la route API backend au lieu de Scryfall directement
-      const response = await fetch(
-        `/api/cards/image?name=${encodeURIComponent(cardName)}`
-      )
-
-      if (response.ok) {
-        const data = await response.json()
-        const imageUrl = data.imageUrl
-        if (imageUrl) {
-          setCardImages(prev => new Map(prev).set(cardName, imageUrl))
-          return imageUrl
-        }
-      }
-    } catch (error) {
-      console.error(`Error fetching image for ${cardName}:`, error)
-    }
-
-    return undefined
-  }
-
   const handleExpandDeck = async (deckId: number) => {
     if (expandedDeckId === deckId) {
       setExpandedDeckId(null)
     } else {
       setExpandedDeckId(deckId)
-      // Charger les images des cartes en parallèle
+      // Charger les images des cartes avec un appel batch
       const deck = decks.find(d => d.id === deckId)
       if (deck) {
         const cards = parseDecklist(deck.list)
         const uniqueCardNames = [...new Set(cards.map(c => c.name))]
         const cardsToFetch = uniqueCardNames.filter(name => !cardImages.has(name))
         
-        // Paralléliser les requêtes par batch de 10 pour respecter le rate limit
-        const batchSize = 10
-        for (let i = 0; i < cardsToFetch.length; i += batchSize) {
-          const batch = cardsToFetch.slice(i, i + batchSize)
-          await Promise.all(batch.map(name => fetchCardImage(name)))
-          // Petit délai entre les batch pour éviter le rate-limit
-          if (i + batchSize < cardsToFetch.length) {
-            await new Promise(resolve => setTimeout(resolve, 100))
+        if (cardsToFetch.length > 0) {
+          try {
+            const response = await fetch('/api/cards/batch', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ cardNames: cardsToFetch })
+            })
+
+            if (response.ok) {
+              const data = await response.json()
+              const newImages = new Map(cardImages)
+              
+              for (const [cardName, imageUrl] of Object.entries(data.images)) {
+                newImages.set(cardName, imageUrl as string | null)
+              }
+              
+              setCardImages(newImages)
+            }
+          } catch (error) {
+            console.error('Error fetching card images:', error)
           }
         }
       }
