@@ -20,7 +20,7 @@ export default function DecksPage() {
   const [decks, setDecks] = useState<Deck[]>([])
   const [loading, setLoading] = useState(true)
   const [expandedDeckId, setExpandedDeckId] = useState<number | null>(null)
-  const [cardImages, setCardImages] = useState<Map<string, string>>(new Map())
+  const [cardImages, setCardImages] = useState<Map<string, string | null>>(new Map())
 
   useEffect(() => {
     const loadDecks = () => {
