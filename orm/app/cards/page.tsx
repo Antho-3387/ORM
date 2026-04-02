@@ -1,14 +1,12 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { searchCards } from '@/lib/scryfall'
+import { searchCardsOptimized, getPopularCards } from '@/lib/supabase-cards'
 
 interface Card {
   id: string
   name: string
-  image_uris?: {
-    normal: string
-  }
+  image_url?: string
   type_line: string
 }
 
@@ -19,25 +17,13 @@ export default function CardsPage() {
     searchQuery: '',
   })
 
-  // Charger des cartes aléatoires au montage
+  // Charger des cartes populaires au montage
   useEffect(() => {
-    const loadRandomCards = async () => {
+    const loadPopularCards = async () => {
       setLoading(true)
       try {
-        // Charge différentes collections de cartes aléatoires
-        const queries = [
-          'c:w',
-          'c:u', 
-          'c:b',
-          'c:r',
-          'c:g',
-          't:creature',
-          't:instant',
-          't:sorcery'
-        ]
-        const randomQuery = queries[Math.floor(Math.random() * queries.length)]
-        const results = await searchCards(randomQuery)
-        setCards(results.slice(0, 30)) // 30 cartes aléatoires
+        const results = await getPopularCards()
+        setCards(results.slice(0, 30)) // 30 cartes populaires
       } catch (error) {
         console.error('Failed to load cards:', error)
         setCards([])
@@ -46,7 +32,7 @@ export default function CardsPage() {
       }
     }
 
-    loadRandomCards()
+    loadPopularCards()
   }, [])
 
   // Rechercher quand le searchQuery change
@@ -59,7 +45,7 @@ export default function CardsPage() {
     const searchCardsApi = async () => {
       setLoading(true)
       try {
-        const results = await searchCards(filters.searchQuery)
+        const results = await searchCardsOptimized(filters.searchQuery)
         
         // Trier les résultats: d'abord les noms qui commencent par la recherche, puis les autres
         const query = filters.searchQuery.toLowerCase()
@@ -133,9 +119,9 @@ export default function CardsPage() {
           }}>
             {cards.map((card) => (
               <div key={card.id} style={{ textAlign: 'center' }}>
-                {card.image_uris?.normal ? (
+                {card.image_url ? (
                   <img 
-                    src={card.image_uris.normal} 
+                    src={card.image_url} 
                     alt={card.name}
                     style={{
                       width: '120px',
