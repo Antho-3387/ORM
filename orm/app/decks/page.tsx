@@ -83,21 +83,17 @@ export default function DecksPage() {
     }
 
     try {
-      // Chercher la carte exacte par nom
+      // Appeler la route API backend au lieu de Scryfall directement
       const response = await fetch(
-        `https://api.scryfall.com/cards/search?q=!"${encodeURIComponent(cardName)}"&unique=cards`,
-        { headers: { 'Accept': 'application/json' } }
+        `/api/cards/image?name=${encodeURIComponent(cardName)}`
       )
 
       if (response.ok) {
         const data = await response.json()
-        if (data.data && data.data.length > 0) {
-          const card = data.data[0]
-          const imageUrl = card.image_uris?.normal
-          if (imageUrl) {
-            setCardImages(prev => new Map(prev).set(cardName, imageUrl))
-            return imageUrl
-          }
+        const imageUrl = data.imageUrl
+        if (imageUrl) {
+          setCardImages(prev => new Map(prev).set(cardName, imageUrl))
+          return imageUrl
         }
       }
     } catch (error) {
