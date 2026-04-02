@@ -41,21 +41,19 @@ export async function searchCardsOptimized(query: string): Promise<Card[]> {
     // Si pas de résultat dans Supabase, chercher sur Scryfall et mettre en cache
     const scryfallCards = await scryfallSearch(query)
     if (scryfallCards.length > 0) {
-      // Sauvegarder dans Supabase pour les prochaines fois
-      await Promise.all(
-        scryfallCards.map(card =>
-          supabase.from('Card').upsert([
-            {
-              scryfall_id: card.id,
-              name: card.name,
-              type_line: card.type_line,
-              image_url: card.image_uris?.normal,
-              mana_value: card.mana_value,
-              colors: JSON.stringify(card.colors || []),
-            },
-          ]).then(() => null).catch(() => null) // Ignorer les erreurs d'upsert
-        )
-      )
+      // Sauvegarder dans Supabase pour les prochaines fois (non-bloquant)
+      scryfallCards.forEach(card => {
+        supabase.from('Card').upsert([
+          {
+            scryfall_id: card.id,
+            name: card.name,
+            type_line: card.type_line,
+            image_url: card.image_uris?.normal,
+            mana_value: card.mana_value,
+            colors: JSON.stringify(card.colors || []),
+          },
+        ]).catch(() => {}) // Ignorer silencieusement les erreurs d'upsert
+      })
 
       cardCache.set(query, { data: scryfallCards as Card[], timestamp: Date.now() })
       return scryfallCards as Card[]
