@@ -39,6 +39,7 @@ export default function DecksPage() {
         `)
 
       if (filter === 'mine' && user) {
+        // Use user.id directly - Supabase handles UUID comparison
         query = query.eq('userId', user.id)
       }
 

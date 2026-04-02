@@ -22,7 +22,8 @@ export async function GET(req: NextRequest) {
       `)
 
     if (userId) {
-      query = query.eq('userId', userId)
+      // Cast userId to UUID for proper comparison
+      query = query.eq('userId', userId as any)
     }
 
     const { data, error } = await query.order('createdAt', { ascending: false })
