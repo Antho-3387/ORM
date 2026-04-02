@@ -5,13 +5,10 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@/lib/auth-context'
 import Link from 'next/link'
 
-export const dynamic = 'force-dynamic'
-
 export default function AuthPage() {
   const searchParams = useSearchParams()
-  const tabParam = searchParams.get('tab')
   
-  const [isLogin, setIsLogin] = useState(tabParam === 'register' ? false : true)
+  const [isLogin, setIsLogin] = useState(true)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [name, setName] = useState('')
@@ -19,6 +16,14 @@ export default function AuthPage() {
   const [error, setError] = useState('')
   const router = useRouter()
   const { login, register } = useAuth()
+
+  // Set tab from URL after mounting (client-side only)
+  useEffect(() => {
+    const tabParam = searchParams.get('tab')
+    if (tabParam === 'register') {
+      setIsLogin(false)
+    }
+  }, [searchParams])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
