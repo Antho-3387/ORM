@@ -24,8 +24,8 @@ export default function CardsPage() {
     const loadCards = async () => {
       setLoading(true)
       try {
-        // Récupère les cartes Commander les plus populaires
-        const results = await searchCards('format:commander legal')
+        // Récupère les cartes légendaires (populaires en Commander)
+        const results = await searchCards('t:legendary')
         setCards(results.slice(0, 50)) // Limite à 50 cartes pour la performance
       } catch (error) {
         console.error('Failed to load cards:', error)
