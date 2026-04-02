@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect } from 'react'
 import { searchCards } from '@/lib/scryfall'
 
 interface Card {
@@ -14,19 +14,30 @@ interface Card {
 
 export default function CardsPage() {
   const [cards, setCards] = useState<Card[]>([])
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
   const [filters, setFilters] = useState({
     searchQuery: '',
   })
 
-  // Charger les cartes au montage
+  // Charger des cartes aléatoires au montage
   useEffect(() => {
-    const loadCards = async () => {
+    const loadRandomCards = async () => {
       setLoading(true)
       try {
-        // Récupère les cartes légendaires (populaires en Commander)
-        const results = await searchCards('t:legendary')
-        setCards(results.slice(0, 50)) // Limite à 50 cartes pour la performance
+        // Charge différentes collections de cartes aléatoires
+        const queries = [
+          'c:w',
+          'c:u', 
+          'c:b',
+          'c:r',
+          'c:g',
+          't:creature',
+          't:instant',
+          't:sorcery'
+        ]
+        const randomQuery = queries[Math.floor(Math.random() * queries.length)]
+        const results = await searchCards(randomQuery)
+        setCards(results.slice(0, 30)) // 30 cartes aléatoires
       } catch (error) {
         console.error('Failed to load cards:', error)
         setCards([])
@@ -35,21 +46,33 @@ export default function CardsPage() {
       }
     }
 
-    loadCards()
+    loadRandomCards()
   }, [])
 
-  // Filtrer par recherche
-  const filteredCards = useMemo(() => {
-    return cards.filter((card) => {
-      if (
-        filters.searchQuery &&
-        !card.name.toLowerCase().includes(filters.searchQuery.toLowerCase())
-      ) {
-        return false
+  // Rechercher quand le searchQuery change
+  useEffect(() => {
+    if (!filters.searchQuery.trim()) {
+      // Si la barre est vide, ne rien faire (garder les 30 cartes initiales)
+      return
+    }
+
+    const searchCardsApi = async () => {
+      setLoading(true)
+      try {
+        const results = await searchCards(filters.searchQuery)
+        setCards(results.slice(0, 30))
+      } catch (error) {
+        console.error('Failed to search cards:', error)
+        setCards([])
+      } finally {
+        setLoading(false)
       }
-      return true
-    })
-  }, [cards, filters])
+    }
+
+    // Délai de 300ms pour ne pas faire une requête à chaque lettre
+    const timer = setTimeout(searchCardsApi, 300)
+    return () => clearTimeout(timer)
+  }, [filters.searchQuery])
 
   return (
     <main style={{ minHeight: 'calc(100vh - 60px)', background: '#1a1a2e', padding: '2rem' }}>
@@ -60,7 +83,7 @@ export default function CardsPage() {
             Magic Cards
           </h1>
           <p style={{ color: '#b0b0c0', fontSize: '1rem' }}>
-            {loading ? 'Chargement des cartes...' : `${filteredCards.length} cartes trouvées`}
+            {loading ? 'Recherche en cours...' : `${cards.length} cartes trouvées`}
           </p>
         </div>
 
@@ -86,17 +109,17 @@ export default function CardsPage() {
             textAlign: 'center'
           }}>
             <p style={{ color: '#e0e0e0', fontSize: '1.1rem' }}>
-              Chargement des cartes depuis Scryfall...
+              Recherche en cours...
             </p>
           </div>
-        ) : filteredCards.length > 0 ? (
+        ) : cards.length > 0 ? (
           <div style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))',
             gap: '1.5rem',
             justifyItems: 'center'
           }}>
-            {filteredCards.map((card) => (
+            {cards.map((card) => (
               <div key={card.id} style={{ textAlign: 'center' }}>
                 {card.image_uris?.normal ? (
                   <img 
