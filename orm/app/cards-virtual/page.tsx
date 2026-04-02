@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { FixedSizeList as List } from 'react-window'
 
 interface Card {
   id: string
@@ -67,25 +66,6 @@ const CardItem = ({ card }: { card: Card }) => (
   </div>
 )
 
-// Row renderer for virtualized list
-const Row = ({ index, style, data }: { index: number; style: React.CSSProperties; data: Card[] }) => {
-  const itemsPerRow = 6
-  const rowItems = data.slice(index * itemsPerRow, (index + 1) * itemsPerRow)
-
-  return (
-    <div style={{
-      ...style,
-      display: 'flex',
-      gap: '0.5rem',
-      padding: '0 1rem'
-    }}>
-      {rowItems.map(card => (
-        <CardItem key={card.id} card={card} />
-      ))}
-    </div>
-  )
-}
-
 export default function CardsPageVirtual() {
   const [cards, setCards] = useState<Card[]>([])
   const [loading, setLoading] = useState(false)
@@ -94,9 +74,10 @@ export default function CardsPageVirtual() {
   const [page, setPage] = useState(0)
   const [hasMore, setHasMore] = useState(true)
   const [total, setTotal] = useState(0)
+  const [visibleStart, setVisibleStart] = useState(0)
   const pageSize = 50
 
-  const listRef = useRef<List>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
   const loadMoreRef = useRef<HTMLDivElement>(null)
 
   // Fetch cards function
@@ -137,12 +118,14 @@ export default function CardsPageVirtual() {
     setCards([])
     setPage(0)
     setHasMore(true)
+    setVisibleStart(0)
   }
 
   const handleSort = (newSort: 'name' | 'mana' | 'rarity') => {
     setSortBy(newSort)
     setCards([])
     setPage(0)
+    setVisibleStart(0)
   }
 
   // Infinite scroll observer
@@ -163,10 +146,25 @@ export default function CardsPageVirtual() {
     return () => observer.disconnect()
   }, [page, hasMore, loading, fetchCards])
 
-  // Calculate virtual list dimensions
+  // Handle scroll for virtualization
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const scrollTop = (e.target as HTMLDivElement).scrollTop
+    const itemsPerRow = 6
+    const itemHeight = 240
+    const rowHeight = itemHeight
+    
+    const visibleRowCount = Math.ceil((e.currentTarget.clientHeight) / rowHeight)
+    const startRow = Math.floor(scrollTop / rowHeight)
+    const startIndex = startRow * itemsPerRow
+    
+    setVisibleStart(Math.max(0, startIndex - itemsPerRow))
+  }
+
+  // Simple virtualization: only render visible cards + buffer
   const itemsPerRow = 6
-  const rowCount = Math.ceil(cards.length / itemsPerRow)
-  const itemHeight = 240
+  const itemsToRender = 24 // Show ~4 rows visible + buffers
+  const visibleCards = cards.slice(visibleStart, visibleStart + itemsToRender)
+  const emptySlots = Math.max(0, itemsToRender - visibleCards.length)
 
   return (
     <main style={{ minHeight: 'calc(100vh - 60px)', background: '#1a1a2e', padding: '2rem' }}>
@@ -239,30 +237,37 @@ export default function CardsPageVirtual() {
           </div>
         </div>
 
-        {/* Virtualized Cards Grid */}
-        {rowCount > 0 ? (
-          <List
-            ref={listRef}
-            height={600}
-            itemCount={rowCount}
-            itemSize={itemHeight}
-            width="100%"
-            itemData={cards}
-          >
-            {Row}
-          </List>
-        ) : (
-          <div style={{
+        {/* Cards Grid with Simple Virtualization */}
+        <div
+          ref={containerRef}
+          onScroll={handleScroll}
+          style={{
             display: 'flex',
-            gap: '1rem',
             flexWrap: 'wrap',
-            padding: '1rem'
-          }}>
-            {Array.from({ length: 12 }).map((_, i) => (
+            gap: '0.5rem',
+            padding: '1rem',
+            background: '#2a2a3e',
+            borderRadius: '6px',
+            maxHeight: '600px',
+            overflowY: 'auto',
+            overflowX: 'hidden'
+          }}
+        >
+          {visibleCards.length > 0 ? (
+            visibleCards.map(card => (
+              <CardItem key={card.id} card={card} />
+            ))
+          ) : (
+            Array.from({ length: 12 }).map((_, i) => (
               <CardSkeleton key={i} />
-            ))}
-          </div>
-        )}
+            ))
+          )}
+
+          {/* Render empty slots to maintain scroll position */}
+          {emptySlots > 0 && Array.from({ length: Math.min(emptySlots, 6) }).map((_, i) => (
+            <div key={`empty-${i}`} style={{ width: '150px', height: '200px' }} />
+          ))}
+        </div>
 
         {/* Infinite scroll trigger */}
         <div ref={loadMoreRef} style={{ padding: '2rem', textAlign: 'center' }}>
