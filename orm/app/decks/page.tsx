@@ -108,13 +108,21 @@ export default function DecksPage() {
       setExpandedDeckId(null)
     } else {
       setExpandedDeckId(deckId)
-      // Charger les images des cartes
+      // Charger les images des cartes en parallèle
       const deck = decks.find(d => d.id === deckId)
       if (deck) {
         const cards = parseDecklist(deck.list)
-        for (const card of cards) {
-          if (!cardImages.has(card.name)) {
-            await fetchCardImage(card.name)
+        const uniqueCardNames = [...new Set(cards.map(c => c.name))]
+        const cardsToFetch = uniqueCardNames.filter(name => !cardImages.has(name))
+        
+        // Paralléliser les requêtes par batch de 10 pour respecter le rate limit
+        const batchSize = 10
+        for (let i = 0; i < cardsToFetch.length; i += batchSize) {
+          const batch = cardsToFetch.slice(i, i + batchSize)
+          await Promise.all(batch.map(name => fetchCardImage(name)))
+          // Petit délai entre les batch pour éviter le rate-limit
+          if (i + batchSize < cardsToFetch.length) {
+            await new Promise(resolve => setTimeout(resolve, 100))
           }
         }
       }
