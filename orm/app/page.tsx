@@ -221,16 +221,3 @@ export default function HomePage() {
   )
 }
 
-          <div className="p-6 border border-gray-200 rounded-lg hover:shadow-md transition">
-            <div className="text-3xl mb-3">⚙️</div>
-            <h3 className="text-lg font-bold text-gray-900 mb-2">Manage</h3>
-            <p className="text-gray-600 text-sm">
-              Edit, organize, and customize your decks
-            </p>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
-

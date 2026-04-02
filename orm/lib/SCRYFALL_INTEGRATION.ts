@@ -102,7 +102,7 @@ export async function searchCards(query: string): Promise<ScryfallCard[]> {
   }
 }
 
-export async function getCardById(id: string): Promise<ScryphallCard | null> {
+export async function getCardById(id: string): Promise<ScryfallCard | null> {
   try {
     const response = await fetch(`https://api.scryfall.com/cards/${id}`)
     

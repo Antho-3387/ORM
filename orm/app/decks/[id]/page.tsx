@@ -94,7 +94,7 @@ export default function DeckDetailsPage({ params }: DeckDetailsPageProps) {
             Commander: <span className="text-purple-300 font-semibold">{deck.commander}</span>
           </p>
           <div className="flex flex-wrap gap-2 mb-4">
-            {deck.tags.map((tag) => (
+            {deck.tags.map((tag: string) => (
               <span key={tag} className="px-3 py-1 bg-purple-600/30 text-purple-300 rounded-full text-xs font-medium">
                 {tag}
               </span>
@@ -124,7 +124,7 @@ export default function DeckDetailsPage({ params }: DeckDetailsPageProps) {
               <div className="mb-8">
                 <h3 className="text-lg font-semibold text-slate-200 mb-4">Featured Cards</h3>
                 <CardGrid columns={5}>
-                  {deck.cards.map((card, idx) => (
+                  {deck.cards.map((card: any, idx: number) => (
                     <CardImage
                       key={idx}
                       id={`${idx}`}
@@ -139,7 +139,7 @@ export default function DeckDetailsPage({ params }: DeckDetailsPageProps) {
               <div className="mb-8">
                 <h3 className="text-lg font-semibold text-slate-200 mb-4">Mana Curve</h3>
                 <div className="flex items-end gap-1 h-48 bg-slate-800 p-4 rounded-lg">
-                  {deck.manaDistribution.map((dist, idx) => (
+                  {deck.manaDistribution.map((dist: any, idx: number) => (
                     <div
                       key={idx}
                       className="flex-1 bg-gradient-to-t from-purple-500 to-purple-400 rounded-t transition-all hover:from-purple-600 hover:to-purple-500 group relative"
@@ -205,7 +205,7 @@ export default function DeckDetailsPage({ params }: DeckDetailsPageProps) {
             <div className="bg-slate-900 border border-slate-700 rounded-lg p-6">
               <h3 className="text-lg font-semibold text-slate-200 mb-4">🔗 Top Synergies</h3>
               <div className="space-y-2">
-                {deck.synergies.map((synergy, idx) => (
+                {deck.synergies.map((synergy: any, idx: number) => (
                   <Link
                     key={idx}
                     href={`/cards?search=${synergy.name}`}
@@ -233,45 +233,5 @@ export default function DeckDetailsPage({ params }: DeckDetailsPageProps) {
         </div>
       </div>
     </main>
-  )
-}
-          <div>
-            <h2 className="text-xl font-bold text-gray-900 mb-6">Cards</h2>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-              {deck.cards.map((dc, idx) => (
-                <div key={idx} className="border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition">
-                  {dc.card.imageUrl ? (
-                    <div className="relative aspect-video bg-gray-100">
-                      <img
-                        src={dc.card.imageUrl}
-                        alt={dc.card.name}
-                        className="w-full h-full object-cover"
-                        loading="lazy"
-                      />
-                      <div className="absolute top-2 right-2 bg-blue-600 text-white px-2 py-1 rounded text-xs font-bold">
-                        ×{dc.quantity}
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="aspect-video bg-gray-100 flex flex-col items-center justify-center">
-                      <span className="text-2xl mb-1">🂡</span>
-                      <span className="text-xs font-bold text-gray-900">×{dc.quantity}</span>
-                    </div>
-                  )}
-                  <div className="p-3">
-                    <h4 className="text-xs font-bold text-gray-900 truncate">{dc.card.name}</h4>
-                    <p className="text-xs text-gray-600 truncate">{dc.card.type || 'Unknown'}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        ) : (
-          <div className="text-center py-12">
-            <p className="text-gray-600">No cards in this deck</p>
-          </div>
-        )}
-      </div>
-    </div>
   )
 }
