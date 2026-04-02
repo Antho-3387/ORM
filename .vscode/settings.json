@@ -1,3 +1,5 @@
 {
-  "explorer.enabled": false
+  "explorer.enabled": false,
+  "workbench.activityBar.iconSideBarVisibility": "hidden",
+  "workbench.sideBar.location": "right"
 }
