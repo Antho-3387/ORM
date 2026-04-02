@@ -1,12 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  turbopack: {
-    root: '.',
-  },
-  output: {
-    fileTracingRoot: '.',
-  },
+  /* config options here */
 };
 
 export default nextConfig;
