@@ -1,8 +1,9 @@
 'use client'
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
-import { signIn, signUp, signOut, onAuthStateChange } from './auth-service'
+import { signIn, signUp, signOut } from './auth-service'
 import { User } from './auth-service'
+import { supabase } from './supabase'
 
 interface AuthContextType {
   user: User | null
@@ -19,39 +20,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
 
-  // S'enregistrer aux changements d'authentification Supabase
+  // Initialize auth state on mount
   useEffect(() => {
     let isMounted = true
-    let unsubscribe: (() => void) | undefined
 
-    try {
-      const { subscription } = onAuthStateChange((authUser) => {
+    const checkSession = async () => {
+      try {
+        // Check if there's a current session
+        const { data: { session } } = await supabase.auth.getSession()
+        if (isMounted && session?.user) {
+          console.log('Found session:', session.user.email)
+          // Get user from DB
+          const { data: userData } = await supabase
+            .from('User')
+            .select('*')
+            .eq('id', session.user.id)
+            .single()
+          setUser(userData || null)
+        }
+      } catch (error) {
+        console.error('Session check error:', error)
+      } finally {
         if (isMounted) {
-          console.log('Auth state changed:', authUser)
-          setUser(authUser)
           setLoading(false)
         }
-      }) || {}
-      unsubscribe = subscription?.unsubscribe
-    } catch (error) {
-      console.error('Auth subscription error:', error)
-      if (isMounted) {
-        setLoading(false)
       }
     }
 
-    // Timeout: ensure loading ends after 5s
-    const timeout = setTimeout(() => {
-      if (isMounted) {
-        console.warn('Auth loading timeout - setting loading to false')
-        setLoading(false)
-      }
-    }, 5000)
+    checkSession()
 
     return () => {
       isMounted = false
-      clearTimeout(timeout)
-      unsubscribe?.()
     }
   }, [])
 
@@ -60,7 +59,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (error) {
       throw new Error(error)
     }
+    console.log('User registered:', newUser)
     setUser(newUser)
+    setLoading(false)
   }
 
   const login = async (email: string, password: string) => {
@@ -68,7 +69,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (error) {
       throw new Error(error)
     }
+    console.log('User logged in:', authUser)
     setUser(authUser)
+    setLoading(false)
   }
 
   const logout = async () => {
@@ -77,6 +80,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       throw new Error(error)
     }
     setUser(null)
+    setLoading(false)
   }
 
   return (
