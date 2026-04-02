@@ -11,6 +11,8 @@ DROP POLICY IF EXISTS "Users can insert deck cards in their decks" ON public."De
 DROP POLICY IF EXISTS "Users can read all users" ON public."User";
 DROP POLICY IF EXISTS "Users can insert own user record" ON public."User";
 DROP POLICY IF EXISTS "Users can update own user record" ON public."User";
+DROP POLICY IF EXISTS "Anyone can read cards" ON public."Card";
+DROP POLICY IF EXISTS "Authenticated can read migrations" ON public."_prisma_migrations";
 
 -- ============ USER TABLE POLICIES ============
 ALTER TABLE public."User" ENABLE ROW LEVEL SECURITY;
