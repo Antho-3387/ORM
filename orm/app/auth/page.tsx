@@ -1,12 +1,12 @@
 'use client'
 
-import { Suspense, useState } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/auth-context'
 import Link from 'next/link'
 
-function AuthForm({ initialTab }: { initialTab: boolean }) {
-  const [isLogin, setIsLogin] = useState(initialTab)
+export default function AuthPage() {
+  const [isLogin, setIsLogin] = useState(true)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [name, setName] = useState('')
@@ -149,6 +149,7 @@ function AuthForm({ initialTab }: { initialTab: boolean }) {
           <div style={{ marginTop: '1.5rem', color: '#a0a0a0', textAlign: 'center', fontSize: '0.9rem' }}>
             {isLogin ? "Pas de compte ? " : "Déjà inscrit ? "}
             <button
+              type="button"
               onClick={() => {
                 setIsLogin(!isLogin)
                 setError('')
@@ -171,21 +172,5 @@ function AuthForm({ initialTab }: { initialTab: boolean }) {
         </div>
       </div>
     </main>
-  )
-}
-
-function SearchParamsWrapper() {
-  const searchParams = useSearchParams()
-  const tabParam = searchParams.get('tab')
-  const initialTab = tabParam !== 'register'
-  
-  return <AuthForm initialTab={initialTab} />
-}
-
-export default function AuthPage() {
-  return (
-    <Suspense fallback={<div style={{ minHeight: '100vh', background: '#1a1a2e', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Chargement...</div>}>
-      <SearchParamsWrapper />
-    </Suspense>
   )
 }
