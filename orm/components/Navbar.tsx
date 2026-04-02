@@ -40,6 +40,7 @@ export function Navbar() {
           <NavLink href="/" label="Home" />
           <NavLink href="/decks/create" label="Decks" />
           <NavLink href="/cards" label="Cards" />
+          <NavLink href="/cards-virtual" label="Explorer" />
         </div>
       </div>
     </nav>
