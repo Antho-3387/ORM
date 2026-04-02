@@ -1,8 +1,10 @@
 -- Configure Row Level Security (RLS) pour les decks
 -- FIRST: Drop the old incorrect policies (if they exist)
+DROP POLICY IF EXISTS "Users can read all decks" ON public."Deck";
 DROP POLICY IF EXISTS "Users can only modify their own decks" ON public."Deck";
 DROP POLICY IF EXISTS "Users can only delete their own decks" ON public."Deck";
 DROP POLICY IF EXISTS "Users can create decks" ON public."Deck";
+DROP POLICY IF EXISTS "Users can read all deck cards" ON public."DeckCard";
 DROP POLICY IF EXISTS "Users can modify deck cards they own" ON public."DeckCard";
 DROP POLICY IF EXISTS "Users can delete deck cards from their decks" ON public."DeckCard";
 DROP POLICY IF EXISTS "Users can insert deck cards in their decks" ON public."DeckCard";
