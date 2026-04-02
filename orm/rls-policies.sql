@@ -21,12 +21,13 @@ CREATE POLICY "Users can read all users" ON public."User"
 
 -- Les utilisateurs authentifiés peuvent créer leur propre enregistrement
 -- Aussi permettre aux utilisateurs nouvellement inscrits (qui ont un UID from Auth)
+-- NOTE: WITH CHECK (true) is intentional to allow registration without auth context
 CREATE POLICY "Users can insert own user record" ON public."User"
   FOR INSERT WITH CHECK (true);  -- Permettre l'insertion lors de l'inscription
 
 -- Les utilisateurs peuvent mettre à jour leur propre profil
 CREATE POLICY "Users can update own user record" ON public."User"
-  FOR UPDATE USING (auth.uid()::text = id);
+  FOR UPDATE USING ((select auth.uid()::text) = id);
 
 -- ============ DECK TABLE POLICIES ============
 ALTER TABLE public."Deck" ENABLE ROW LEVEL SECURITY;
@@ -35,13 +36,13 @@ CREATE POLICY "Users can read all decks" ON public."Deck"
   FOR SELECT USING (true);
 
 CREATE POLICY "Users can only modify their own decks" ON public."Deck"
-  FOR UPDATE USING (auth.uid()::text = "userId");
+  FOR UPDATE USING ((select auth.uid()::text) = "userId");
 
 CREATE POLICY "Users can only delete their own decks" ON public."Deck"
-  FOR DELETE USING (auth.uid()::text = "userId");
+  FOR DELETE USING ((select auth.uid()::text) = "userId");
 
 CREATE POLICY "Users can create decks" ON public."Deck"
-  FOR INSERT WITH CHECK (auth.uid()::text = "userId");
+  FOR INSERT WITH CHECK ((select auth.uid()::text) = "userId");
 
 -- Activer RLS sur DeckCard (optionnel mais recommandé)
 ALTER TABLE public."DeckCard" ENABLE ROW LEVEL SECURITY;
@@ -52,7 +53,7 @@ CREATE POLICY "Users can read all deck cards" ON public."DeckCard"
 CREATE POLICY "Users can modify deck cards they own" ON public."DeckCard"
   FOR UPDATE 
   USING (
-    auth.uid()::text IN (
+    (select auth.uid()::text) IN (
       SELECT "userId" FROM public."Deck" WHERE id = "deckId"
     )
   );
@@ -60,7 +61,7 @@ CREATE POLICY "Users can modify deck cards they own" ON public."DeckCard"
 CREATE POLICY "Users can delete deck cards from their decks" ON public."DeckCard"
   FOR DELETE 
   USING (
-    auth.uid()::text IN (
+    (select auth.uid()::text) IN (
       SELECT "userId" FROM public."Deck" WHERE id = "deckId"
     )
   );
@@ -68,7 +69,7 @@ CREATE POLICY "Users can delete deck cards from their decks" ON public."DeckCard
 CREATE POLICY "Users can insert deck cards in their decks" ON public."DeckCard"
   FOR INSERT 
   WITH CHECK (
-    auth.uid()::text IN (
+    (select auth.uid()::text) IN (
       SELECT "userId" FROM public."Deck" WHERE id = "deckId"
     )
   );
