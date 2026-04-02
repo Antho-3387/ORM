@@ -10,7 +10,7 @@ export default function Home() {
 
       <Link href="/decks/create">
         <button>
-          + Créer un Deck
+          Créer un Deck
         </button>
       </Link>
 

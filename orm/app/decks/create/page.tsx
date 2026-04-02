@@ -35,8 +35,10 @@ export default function CreateDeckPage() {
 
   return (
     <main style={{ maxWidth: '1000px', margin: '0 auto', padding: '4rem 2rem' }}>
-      <Link href="/" style={{ color: '#3b82f6', marginBottom: '2rem', display: 'block' }}>
-        ← Retour
+      <Link href="/">
+        <button style={{ background: '#404050', marginBottom: '2rem' }}>
+          Retour
+        </button>
       </Link>
 
       <h1>Créer un Deck</h1>
@@ -70,7 +72,7 @@ export default function CreateDeckPage() {
 
         <div>
           <button type="submit">
-            {saved ? '✓ Sauvegardé!' : 'Sauvegarder le Deck'}
+            {saved ? 'Sauvegardé!' : 'Sauvegarder le Deck'}
           </button>
           <Link href="/">
             <button type="button" style={{ background: '#404050', marginLeft: '0' }}>
