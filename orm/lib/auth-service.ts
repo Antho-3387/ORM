@@ -1,3 +1,5 @@
+'use client'
+
 import { supabase } from './supabase'
 
 export interface User {
@@ -22,6 +24,7 @@ export async function signUp(email: string, password: string, name?: string): Pr
       email,
       password,
       options: {
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
         data: {
           name: name || email.split('@')[0],
         },
@@ -40,7 +43,7 @@ export async function signUp(email: string, password: string, name?: string): Pr
           {
             id: authData.user.id,
             email: authData.user.email,
-            password: '', // Ne pas stocker le mot de passe (Supabase Auth s'en charge)
+            password: '',
             name: name || email.split('@')[0],
           },
         ])
@@ -51,6 +54,13 @@ export async function signUp(email: string, password: string, name?: string): Pr
         return { user: null, error: dbError.message }
       }
 
+      // Si l'utilisateur a une session, il peut se connecter directement
+      // Sinon, il devra confirmer son email
+      if (authData.session) {
+        return { user: data as User, error: null }
+      }
+
+      // Email confirmation will be required (Supabase setting)
       return { user: data as User, error: null }
     }
 
