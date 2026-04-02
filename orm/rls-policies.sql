@@ -73,6 +73,18 @@ CREATE POLICY "Users can insert deck cards in their decks" ON public."DeckCard"
     )
   );
 
+-- ============ CARD TABLE POLICIES ============
+ALTER TABLE public."Card" ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Anyone can read cards" ON public."Card"
+  FOR SELECT USING (true);
+
+-- ============ MIGRATIONS TABLE POLICIES ============
+ALTER TABLE public."_prisma_migrations" ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Authenticated can read migrations" ON public."_prisma_migrations"
+  FOR SELECT USING (true);
+
 -- Publier les tables pour PostgREST
 GRANT ALL ON public."User" TO anon, authenticated;
 GRANT ALL ON public."Card" TO anon, authenticated;
