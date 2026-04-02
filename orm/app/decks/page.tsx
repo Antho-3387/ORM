@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 
 interface Deck {
@@ -21,6 +21,7 @@ export default function DecksPage() {
   const [loading, setLoading] = useState(true)
   const [expandedDeckId, setExpandedDeckId] = useState<number | null>(null)
   const [cardImages, setCardImages] = useState<Map<string, string | null>>(new Map())
+  const loadedDecksRef = useRef<Set<number>>(new Set())
 
   useEffect(() => {
     const loadDecks = () => {
@@ -76,41 +77,53 @@ export default function DecksPage() {
       .filter(card => card.name)
   }
 
-  const handleExpandDeck = async (deckId: number) => {
+  // Charger les images du deck quand on l'ouvre
+  useEffect(() => {
+    if (expandedDeckId === null) return
+    if (loadedDecksRef.current.has(expandedDeckId)) return // Déjà chargé
+
+    const loadCardImages = async () => {
+      const deck = decks.find(d => d.id === expandedDeckId)
+      if (!deck) return
+
+      const cards = parseDecklist(deck.list)
+      const uniqueCardNames = [...new Set(cards.map(c => c.name))]
+
+      // Envoyer toutes les cartes au serveur - il retournera le cache + nouvelles
+      if (uniqueCardNames.length > 0) {
+        try {
+          const response = await fetch('/api/cards/batch', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ cardNames: uniqueCardNames })
+          })
+
+          if (response.ok) {
+            const data = await response.json()
+            setCardImages(prev => {
+              const newImages = new Map(prev)
+              for (const [cardName, imageUrl] of Object.entries(data.images)) {
+                newImages.set(cardName, imageUrl as string | null)
+              }
+              return newImages
+            })
+          }
+        } catch (error) {
+          console.error('Error fetching card images:', error)
+        }
+      }
+
+      loadedDecksRef.current.add(expandedDeckId)
+    }
+
+    loadCardImages()
+  }, [expandedDeckId, decks])
+
+  const handleExpandDeck = (deckId: number) => {
     if (expandedDeckId === deckId) {
       setExpandedDeckId(null)
     } else {
       setExpandedDeckId(deckId)
-      // Charger les images des cartes avec un appel batch
-      const deck = decks.find(d => d.id === deckId)
-      if (deck) {
-        const cards = parseDecklist(deck.list)
-        const uniqueCardNames = [...new Set(cards.map(c => c.name))]
-        const cardsToFetch = uniqueCardNames.filter(name => !cardImages.has(name))
-        
-        if (cardsToFetch.length > 0) {
-          try {
-            const response = await fetch('/api/cards/batch', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ cardNames: cardsToFetch })
-            })
-
-            if (response.ok) {
-              const data = await response.json()
-              const newImages = new Map(cardImages)
-              
-              for (const [cardName, imageUrl] of Object.entries(data.images)) {
-                newImages.set(cardName, imageUrl as string | null)
-              }
-              
-              setCardImages(newImages)
-            }
-          } catch (error) {
-            console.error('Error fetching card images:', error)
-          }
-        }
-      }
     }
   }
 
