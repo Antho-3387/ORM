@@ -1,12 +1,15 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@/lib/auth-context'
 import Link from 'next/link'
 
 export default function AuthPage() {
-  const [isLogin, setIsLogin] = useState(true)
+  const searchParams = useSearchParams()
+  const tabParam = searchParams.get('tab')
+  
+  const [isLogin, setIsLogin] = useState(tabParam === 'register' ? false : true)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [name, setName] = useState('')
