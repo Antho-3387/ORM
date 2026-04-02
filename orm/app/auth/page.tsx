@@ -5,6 +5,8 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@/lib/auth-context'
 import Link from 'next/link'
 
+export const dynamic = 'force-dynamic'
+
 export default function AuthPage() {
   const searchParams = useSearchParams()
   const tabParam = searchParams.get('tab')
