@@ -17,15 +17,15 @@ export function Navbar() {
   const isActive = (path: string) => pathname === path || pathname.startsWith(`${path}/`)
 
   return (
-    <nav className="sticky top-0 z-50 bg-slate-950 border-b border-slate-700">
-      <div className="max-w-7xl mx-auto px-4 md:px-6 py-4 flex items-center justify-between">
+    <nav className="sticky top-0 z-50 bg-white border-b border-gray-200">
+      <div className="container-clean py-4 flex items-center justify-between">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2 group">
-          <div className="w-8 h-8 bg-gradient-to-br from-purple-400 to-purple-600 rounded-lg flex items-center justify-center">
-            <span className="text-white font-bold text-xl">⚡</span>
+          <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
+            <span className="text-white font-bold text-xl">🃏</span>
           </div>
-          <span className="text-lg font-bold text-slate-100 group-hover:text-purple-400 transition hidden md:inline">
-            MTG Deck Hub
+          <span className="text-lg font-bold text-gray-900 group-hover:text-indigo-600 transition hidden md:inline">
+            MTG Decks
           </span>
         </Link>
 
@@ -46,18 +46,13 @@ export function Navbar() {
             label="Cards"
             isActive={isActive('/cards')}
           />
-          <NavLink
-            href="/statistics"
-            label="Stats"
-            isActive={isActive('/statistics')}
-          />
         </div>
 
         {/* Right - Account */}
         <div className="flex items-center gap-4">
           {isAuthenticated ? (
             <>
-              <span className="text-slate-300 text-sm hidden md:inline">{user?.email}</span>
+              <span className="text-gray-600 text-sm hidden md:inline">{user?.email}</span>
               <button
                 onClick={handleLogout}
                 className="px-3 py-1.5 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition"
@@ -67,7 +62,7 @@ export function Navbar() {
             </>
           ) : (
             <>
-              <Link href="/auth" className="px-3 py-1.5 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-lg transition">
+              <Link href="/auth" className="px-3 py-1.5 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition">
                 Sign In
               </Link>
             </>
@@ -90,12 +85,13 @@ function NavLink({ href, label, isActive }: NavLinkProps) {
       href={href}
       className={`px-3 py-2 rounded-lg transition text-sm font-medium ${
         isActive
-          ? 'bg-purple-600/20 text-purple-300 border border-purple-500/30'
-          : 'text-slate-300 hover:text-slate-100 hover:bg-slate-800'
+          ? 'bg-indigo-100 text-indigo-600 border border-indigo-300'
+          : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
       }`}
     >
       {label}
     </Link>
   )
 }
+
 

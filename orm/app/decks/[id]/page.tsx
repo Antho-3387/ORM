@@ -2,9 +2,7 @@
 
 import Link from 'next/link'
 import { use } from 'react'
-import { CardImage } from '@/components/CardImage'
-import { CardGrid } from '@/components/CardGrid'
-import { StatsGrid } from '@/components/StatsBar'
+import { useState } from 'react'
 
 interface DeckDetailsPageProps {
   params: Promise<{ id: string }>
@@ -16,217 +14,193 @@ const DECK_DETAILS: Record<string, any> = {
     id: '1',
     name: 'Atraxa Infect',
     commander: 'Atraxa, Praetors\' Voice',
-    description: 'A competitive infect strategy deck.',
+    description: 'A competitive infect strategy deck with proliferate effects for overwhelming board advantage.',
     format: 'Commander',
     author: 'ProPlayer_123',
     likes: 342,
     views: 12453,
     
-    stats: {
-      totalCards: 99,
-      landCount: 32,
-      avgManaValue: 3.2,
-      colors: 'WUBG',
-    },
-
-    manaDistribution: [
-      { mana: 0, count: 2 },
-      { mana: 1, count: 12 },
-      { mana: 2, count: 18 },
-      { mana: 3, count: 15 },
-      { mana: 4, count: 12 },
-      { mana: 5, count: 8 },
-      { mana: 6, count: 5 },
-      { mana: 7, count: 3 },
-      { mana: 8, count: 2 },
-      { mana: 9, count: 1 },
-    ],
-
-    colorDistribution: {
-      W: 15,
-      U: 14,
-      B: 0,
-      R: 0,
-      G: 18,
-      C: 2,
-    },
-
     cards: [
-      { name: 'Atraxa, Praetors\' Voice', quantity: 1, imageUrl: 'https://images.scryfall.io/cards/large/front/4/8/483c1fd8-37b4-43ac-9f60-979319ba33a8.jpg?1599768957' },
-      { name: 'Sol Ring', quantity: 1, imageUrl: 'https://images.scryfall.io/cards/large/front/e/6/e6211e3e-8494-40ba-b149-eb89e618e1d2.jpg?1699395241' },
-      { name: 'Counterspell', quantity: 1, imageUrl: 'https://images.scryfall.io/cards/large/front/1/9/1920dae4-fb92-412f-b8f9-4eca114b06ec.jpg?1599769051' },
-      { name: 'Swords to Plowshares', quantity: 1, imageUrl: 'https://images.scryfall.io/cards/large/front/b/e/be2b4177-e47c-4dde-9322-b9876749c6e6.jpg?1611967006' },
-      { name: 'Green Sun\'s Zenith', quantity: 1, imageUrl: 'https://images.scryfall.io/cards/large/front/0/1/01794178-cf41-454c-ac37-1d8b3e638378.jpg?1580014961' },
-    ],
-
-    synergies: [
-      { name: 'Doubling Season', count: 234 },
-      { name: 'Proliferate', count: 187 },
-      { name: 'Counterspell', count: 156 },
-      { name: 'Parallel Lives', count: 145 },
-      { name: 'Rings of Brighthearth', count: 123 },
+      { name: 'Atraxa, Praetors\' Voice', type: 'Creature', quantity: 1, cmc: 4 },
+      { name: 'Sol Ring', type: 'Artifact', quantity: 1, cmc: 1 },
+      { name: 'Counterspell', type: 'Instant', quantity: 1, cmc: 2 },
+      { name: 'Swords to Plowshares', type: 'Instant', quantity: 1, cmc: 1 },
+      { name: 'Green Sun\'s Zenith', type: 'Instant', quantity: 1, cmc: 2 },
+      { name: 'Doubling Season', type: 'Enchantment', quantity: 1, cmc: 5 },
+      { name: 'Proliferate', type: 'Sorcery', quantity: 1, cmc: 3 },
+      { name: 'Parallel Lives', type: 'Enchantment', quantity: 1, cmc: 4 },
+      { name: 'Rings of Brighthearth', type: 'Artifact', quantity: 1, cmc: 3 },
+      { name: 'Swamp', type: 'Land', quantity: 8, cmc: 0 },
+      { name: 'Forest', type: 'Land', quantity: 8, cmc: 0 },
+      { name: 'Island', type: 'Land', quantity: 8, cmc: 0 },
+      { name: 'Plains', type: 'Land', quantity: 8, cmc: 0 },
     ],
 
     tags: ['Competitive', 'Infect', 'Control', 'Proliferate'],
   },
+  '2': {
+    id: '2',
+    name: 'Prosper Rakdos',
+    commander: 'Prosper, Tomb-Bound',
+    description: 'Fast paced treasure generation and sacrifice strategy.',
+    format: 'Commander',
+    author: 'TreasureHunter',
+    likes: 278,
+    views: 9832,
+    cards: [
+      { name: 'Prosper, Tomb-Bound', type: 'Creature', quantity: 1, cmc: 3 },
+      { name: 'Sol Ring', type: 'Artifact', quantity: 1, cmc: 1 },
+      { name: 'Treasure Map', type: 'Artifact', quantity: 1, cmc: 3 },
+      { name: 'Dockside Extortionist', type: 'Creature', quantity: 1, cmc: 2 },
+    ],
+    tags: ['Treasure', 'Sacrifice', 'Fast Paced'],
+  },
+}
+
+const typeIcons: Record<string, string> = {
+  'Creature': '👹',
+  'Instant': '⚡',
+  'Sorcery': '📜',
+  'Enchantment': '✨',
+  'Artifact': '⚙️',
+  'Land': '🏜️',
+  'Planeswalker': '👤',
+  'default': '🃏',
 }
 
 export default function DeckDetailsPage({ params }: DeckDetailsPageProps) {
   const { id } = use(params)
   const deck = DECK_DETAILS[id] || DECK_DETAILS['1']
+  const [sortBy, setSortBy] = useState('type')
+
+  const sortedCards = [...deck.cards].sort((a, b) => {
+    if (sortBy === 'cmc') return a.cmc - b.cmc
+    if (sortBy === 'name') return a.name.localeCompare(b.name)
+    return a.type.localeCompare(b.type)
+  })
+
+  const totalCards = deck.cards.reduce((sum: number, card: any) => sum + card.quantity, 0)
 
   return (
-    <main className="min-h-screen bg-slate-950">
-      <div className="max-w-7xl mx-auto px-4 md:px-6 py-12">
-        {/* Breadcrumb */}
-        <div className="mb-8">
-          <Link href="/decks" className="text-purple-400 hover:text-purple-300 transition">
+    <main className="min-h-screen bg-white">
+      {/* Header */}
+      <header className="border-b border-gray-200 bg-white sticky top-0 z-40">
+        <div className="container-clean py-6">
+          <Link href="/decks" className="text-indigo-600 text-sm font-medium hover:text-indigo-700 mb-4 block">
             ← Back to Decks
           </Link>
-        </div>
-
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl md:text-5xl font-bold text-slate-100 mb-2">
-            {deck.name}
-          </h1>
-          <p className="text-lg text-slate-400 mb-4">
-            Commander: <span className="text-purple-300 font-semibold">{deck.commander}</span>
-          </p>
-          <div className="flex flex-wrap gap-2 mb-4">
-            {deck.tags.map((tag: string) => (
-              <span key={tag} className="px-3 py-1 bg-purple-600/30 text-purple-300 rounded-full text-xs font-medium">
-                {tag}
-              </span>
-            ))}
+          <div className="flex items-start justify-between">
+            <div className="flex-grow">
+              <h1 className="text-4xl font-bold text-gray-900 mb-2">{deck.name}</h1>
+              <p className="text-gray-600 mb-3">Commander: <span className="font-semibold">{deck.commander}</span></p>
+              <p className="text-gray-600 text-sm max-w-2xl">{deck.description}</p>
+            </div>
+            <div className="flex gap-2 ml-4">
+              <Link
+                href={`/decks/${id}/edit`}
+                className="px-4 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition whitespace-nowrap"
+              >
+                Edit Deck
+              </Link>
+            </div>
           </div>
-          <p className="text-slate-400">{deck.description}</p>
         </div>
+      </header>
 
-        {/* Stats */}
-        <StatsGrid
-          stats={[
-            { label: 'Total Cards', value: deck.stats.totalCards, icon: '🎴' },
-            { label: 'Land Count', value: deck.stats.landCount, icon: '🏜️' },
-            { label: 'Avg Mana Value', value: deck.stats.avgManaValue, icon: '💎' },
-            { label: 'Views', value: `${deck.views.toLocaleString()}`, icon: '👁️' },
-          ]}
-        />
-
-        {/* Main Content */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-8">
-          {/* Deck List */}
-          <div className="lg:col-span-2">
-            <div className="bg-slate-900 border border-slate-700 rounded-lg p-6">
-              <h2 className="text-2xl font-bold text-slate-100 mb-6">Deck List</h2>
-              
-              {/* Featured Cards Grid */}
-              <div className="mb-8">
-                <h3 className="text-lg font-semibold text-slate-200 mb-4">Featured Cards</h3>
-                <CardGrid columns={5}>
-                  {deck.cards.map((card: any, idx: number) => (
-                    <CardImage
-                      key={idx}
-                      id={`${idx}`}
-                      name={card.name}
-                      imageUrl={card.imageUrl}
-                    />
-                  ))}
-                </CardGrid>
+      {/* Main Content */}
+      <div className="container-clean py-12">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+          {/* Main Deck List */}
+          <div className="lg:col-span-3">
+            <div className="bg-white border border-gray-200 rounded-xl p-6">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900">Deck List</h2>
+                  <p className="text-sm text-gray-500 mt-1">{totalCards} cards total</p>
+                </div>
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  className="px-4 py-2 border border-gray-300 rounded-lg text-sm"
+                >
+                  <option value="type">Sort by Type</option>
+                  <option value="cmc">Sort by Mana Cost</option>
+                  <option value="name">Sort by Name</option>
+                </select>
               </div>
 
-              {/* Mana Curve */}
-              <div className="mb-8">
-                <h3 className="text-lg font-semibold text-slate-200 mb-4">Mana Curve</h3>
-                <div className="flex items-end gap-1 h-48 bg-slate-800 p-4 rounded-lg">
-                  {deck.manaDistribution.map((dist: any, idx: number) => (
-                    <div
-                      key={idx}
-                      className="flex-1 bg-gradient-to-t from-purple-500 to-purple-400 rounded-t transition-all hover:from-purple-600 hover:to-purple-500 group relative"
-                      style={{
-                        height: `${(dist.count / 20) * 100}%`,
-                        minHeight: '4px',
-                      }}
-                    >
-                      <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block bg-slate-900 px-2 py-1 rounded text-xs text-slate-100 whitespace-nowrap">
-                        {dist.mana}: {dist.count}
+              {/* Cards Table */}
+              <div className="divide-y divide-gray-200">
+                {sortedCards.map((card, idx) => (
+                  <div key={idx} className="py-3 flex items-center justify-between hover:bg-gray-50 px-3 -mx-3">
+                    <div className="flex items-center gap-3 flex-grow">
+                      <span className="text-2xl">{typeIcons[card.type] || typeIcons.default}</span>
+                      <div className="flex-grow">
+                        <p className="font-semibold text-gray-900">{card.name}</p>
+                        <p className="text-xs text-gray-500">{card.type}</p>
                       </div>
                     </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Color Distribution */}
-              <div className="mb-8">
-                <h3 className="text-lg font-semibold text-slate-200 mb-4">Color Distribution</h3>
-                <div className="grid grid-cols-3 gap-3">
-                  <div className="bg-yellow-500/20 border border-yellow-500/30 rounded-lg p-4 text-center">
-                    <p className="text-sm text-slate-400 mb-1">White</p>
-                    <p className="text-2xl font-bold text-yellow-300">{deck.colorDistribution.W}</p>
+                    <div className="flex items-center gap-6">
+                      <div className="text-right">
+                        <p className="text-sm text-gray-500">CMC</p>
+                        <p className="font-bold text-gray-900">{card.cmc}</p>
+                      </div>
+                      <div className="text-right min-w-[40px]">
+                        <p className="text-sm text-gray-500">Qty</p>
+                        <p className="font-bold text-gray-900 text-lg">{card.quantity}</p>
+                      </div>
+                    </div>
                   </div>
-                  <div className="bg-blue-500/20 border border-blue-500/30 rounded-lg p-4 text-center">
-                    <p className="text-sm text-slate-400 mb-1">Blue</p>
-                    <p className="text-2xl font-bold text-blue-300">{deck.colorDistribution.U}</p>
-                  </div>
-                  <div className="bg-green-600/20 border border-green-500/30 rounded-lg p-4 text-center">
-                    <p className="text-sm text-slate-400 mb-1">Green</p>
-                    <p className="text-2xl font-bold text-green-300">{deck.colorDistribution.G}</p>
-                  </div>
-                </div>
+                ))}
               </div>
             </div>
           </div>
 
           {/* Sidebar */}
           <div className="space-y-6">
-            {/* Deck Info */}
-            <div className="bg-slate-900 border border-slate-700 rounded-lg p-6">
-              <h3 className="text-lg font-semibold text-slate-200 mb-4">Deck Info</h3>
-              <div className="space-y-3">
-                <div>
-                  <p className="text-xs uppercase text-slate-400 mb-1">Format</p>
-                  <p className="text-slate-100">{deck.format}</p>
+            {/* Stats Card */}
+            <div className="bg-white border border-gray-200 rounded-xl p-6">
+              <h3 className="font-bold text-gray-900 mb-4">Deck Stats</h3>
+              <div className="space-y-4">
+                <div className="p-3 bg-gray-50 rounded-lg">
+                  <p className="text-xs text-gray-500 font-medium">TOTAL CARDS</p>
+                  <p className="text-2xl font-bold text-gray-900">{totalCards}</p>
                 </div>
-                <div>
-                  <p className="text-xs uppercase text-slate-400 mb-1">Author</p>
-                  <p className="text-slate-100">{deck.author}</p>
+                <div className="p-3 bg-gray-50 rounded-lg">
+                  <p className="text-xs text-gray-500 font-medium">FORMAT</p>
+                  <p className="font-bold text-gray-900">{deck.format}</p>
                 </div>
-                <div>
-                  <p className="text-xs uppercase text-slate-400 mb-1">Likes</p>
-                  <p className="text-slate-100">❤️ {deck.likes}</p>
+                <div className="p-3 bg-gray-50 rounded-lg">
+                  <p className="text-xs text-gray-500 font-medium">AUTHOR</p>
+                  <p className="font-bold text-gray-900">{deck.author}</p>
                 </div>
               </div>
-              <button className="w-full mt-4 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition font-medium">
-                ❤️ Like Deck
-              </button>
             </div>
 
-            {/* Top Synergies */}
-            <div className="bg-slate-900 border border-slate-700 rounded-lg p-6">
-              <h3 className="text-lg font-semibold text-slate-200 mb-4">🔗 Top Synergies</h3>
-              <div className="space-y-2">
-                {deck.synergies.map((synergy: any, idx: number) => (
-                  <Link
-                    key={idx}
-                    href={`/cards?search=${synergy.name}`}
-                    className="flex items-center justify-between p-2 bg-slate-800 hover:bg-slate-700 rounded transition group"
-                  >
-                    <span className="text-xs text-slate-300 group-hover:text-purple-300">
-                      {synergy.name}
+            {/* Tags */}
+            {deck.tags && deck.tags.length > 0 && (
+              <div className="bg-white border border-gray-200 rounded-xl p-6">
+                <h3 className="font-bold text-gray-900 mb-4">Tags</h3>
+                <div className="flex flex-wrap gap-2">
+                  {deck.tags.map((tag: string) => (
+                    <span key={tag} className="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-xs font-medium">
+                      {tag}
                     </span>
-                    <span className="text-xs text-slate-500">{synergy.count}</span>
-                  </Link>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Actions */}
-            <div className="space-y-2">
-              <button className="w-full px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg transition font-medium text-sm">
-                📥 Download Deck
+            <div className="bg-white border border-gray-200 rounded-xl p-6 space-y-3">
+              <button className="w-full py-2 bg-gray-100 hover:bg-gray-200 text-gray-900 rounded-lg font-medium transition text-sm">
+                👁️ {deck.views} views
               </button>
-              <button className="w-full px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg transition font-medium text-sm">
-                🔗 Share Deck
+              <button className="w-full py-2 bg-gray-100 hover:bg-gray-200 text-gray-900 rounded-lg font-medium transition text-sm">
+                ❤️ {deck.likes} likes
+              </button>
+              <button className="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium transition text-sm">
+                📋 Copy Deck
               </button>
             </div>
           </div>

@@ -1,222 +1,204 @@
 'use client'
 
 import Link from 'next/link'
-import { CardImage } from '@/components/CardImage'
-import { CardGrid } from '@/components/CardGrid'
-import { StatsGrid } from '@/components/StatsBar'
-import { TrendingSection } from '@/components/TrendingSection'
+import { useState } from 'react'
 
-// Mock data - will be replaced with real data from API
-const MOCK_CARDS = [
-  {
-    id: '1',
-    name: 'Sol Ring',
-    imageUrl: 'https://images.scryfall.io/cards/large/front/e/6/e6211e3e-8494-40ba-b149-eb89e618e1d2.jpg?1699395241',
-    manaValue: 1,
-    colors: 'C',
-    type: 'Artifact',
-    stats: { popularity: 89, synergies: 234, decks: 5421 },
-  },
-  {
-    id: '2',
-    name: 'Lightning Bolt',
-    imageUrl: 'https://images.scryfall.io/cards/large/front/c/e/ce711943-c1a1-43a0-8b97-8a547503537f.jpg?1601077628',
-    manaValue: 1,
-    colors: 'R',
-    type: 'Instant',
-    stats: { popularity: 94, synergies: 187, decks: 3201 },
-  },
-  {
-    id: '3',
-    name: 'Counterspell',
-    imageUrl: 'https://images.scryfall.io/cards/large/front/1/9/1920dae4-fb92-412f-b8f9-4eca114b06ec.jpg?1599769051',
-    manaValue: 2,
-    colors: 'U',
-    type: 'Instant',
-    stats: { popularity: 88, synergies: 156, decks: 2890 },
-  },
-  {
-    id: '4',
-    name: 'Demonic Tutor',
-    imageUrl: 'https://images.scryfall.io/cards/large/front/3/b/3bdbc3c9-8a89-4f0a-961b-6ad563ce98c2.jpg?1599765488',
-    manaValue: 2,
-    colors: 'B',
-    type: 'Instant',
-    stats: { popularity: 92, synergies: 201, decks: 4156 },
-  },
-  {
-    id: '5',
-    name: 'Green Sun\'s Zenith',
-    imageUrl: 'https://images.scryfall.io/cards/large/front/0/1/01794178-cf41-454c-ac37-1d8b3e638378.jpg?1580014961',
-    manaValue: 2,
-    colors: 'G',
-    type: 'Instant',
-    stats: { popularity: 85, synergies: 198, decks: 3845 },
-  },
-  {
-    id: '6',
-    name: 'Swords to Plowshares',
-    imageUrl: 'https://images.scryfall.io/cards/large/front/b/e/be2b4177-e47c-4dde-9322-b9876749c6e6.jpg?1611967006',
-    manaValue: 1,
-    colors: 'W',
-    type: 'Instant',
-    stats: { popularity: 91, synergies: 167, decks: 2945 },
-  },
-]
-
-const TRENDING_DECKS = [
+// Mock decks data
+const MOCK_DECKS = [
   {
     id: '1',
     name: 'Atraxa Infect',
     commander: 'Atraxa, Praetors\' Voice',
+    description: 'Competitive infect strategy with proliferate effects',
+    colors: ['W', 'U', 'B', 'G'],
+    cards: 99,
     format: 'Commander',
-    decks: 1234,
+    popularity: 892,
   },
   {
     id: '2',
     name: 'Prosper Rakdos',
     commander: 'Prosper, Tomb-Bound',
+    description: 'Fast paced treasure generation and sacrifice strategy',
+    colors: ['R', 'B'],
+    cards: 99,
     format: 'Commander',
-    decks: 987,
+    popularity: 756,
   },
   {
     id: '3',
     name: 'Muldrotha Control',
     commander: 'Muldrotha, the Graywolf',
+    description: 'Recursive control with continuous card advantage',
+    colors: ['U', 'B', 'G'],
+    cards: 99,
     format: 'Commander',
-    decks: 876,
+    popularity: 634,
+  },
+  {
+    id: '4',
+    name: 'Narset Spellslinger',
+    commander: 'Narset, Enlightened Master',
+    description: 'Extra turns and combat phases through spell slinging',
+    colors: ['U', 'W', 'R'],
+    cards: 99,
+    format: 'Commander',
+    popularity: 521,
+  },
+  {
+    id: '5',
+    name: 'Yuriko Ninja',
+    commander: 'Yuriko, the Tiger\'s Shadow',
+    description: 'Evasive ninja tempo with ninjutsu mechanics',
+    colors: ['U', 'B'],
+    cards: 99,
+    format: 'Commander',
+    popularity: 445,
+  },
+  {
+    id: '6',
+    name: 'Kess Consulting',
+    commander: 'Kess, Dissident Mage',
+    description: 'Spell-heavy control list with card velocity',
+    colors: ['U', 'B', 'R'],
+    cards: 99,
+    format: 'Commander',
+    popularity: 389,
   },
 ]
 
-export default function HomePage() {
-  return (
-    <main className="min-h-screen bg-slate-950">
-      {/* Hero Section */}
-      <section className="relative py-16 md:py-24 overflow-hidden">
-        <div className="max-w-7xl mx-auto px-4 md:px-6">
-          {/* Background Gradient */}
-          <div className="absolute inset-0 bg-gradient-to-r from-purple-900/20 via-transparent to-blue-900/20 blur-3xl -z-10" />
+const colorSymbols: Record<string, string> = {
+  'W': '⚪',
+  'U': '🔵',
+  'B': '⚫',
+  'R': '🔴',
+  'G': '🟢',
+  'C': '⚒️',
+}
 
-          <div className="text-center mb-16">
-            <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-slate-100 mb-6 leading-tight">
-              Discover Your Next
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400">
-                {' '}MTG Deck
-              </span>
-            </h1>
-            <p className="text-lg md:text-xl text-slate-300 mb-8 max-w-2xl mx-auto">
-              Explore trending decks, powerful cards, and statistics to build your perfect Magic: The Gathering collection.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link
-                href="/cards"
-                className="px-8 py-3 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg transition-all hover:shadow-lg hover:shadow-purple-500/50"
-              >
-                Explore Cards
-              </Link>
-              <Link
-                href="/decks"
-                className="px-8 py-3 border border-purple-400 text-purple-300 hover:bg-purple-600/20 font-semibold rounded-lg transition"
-              >
-                Browse Decks
-              </Link>
+export default function HomePage() {
+  const [selectedFormat, setSelectedFormat] = useState('all')
+
+  const filteredDecks = selectedFormat === 'all' 
+    ? MOCK_DECKS 
+    : MOCK_DECKS.filter(d => d.format === selectedFormat)
+
+  return (
+    <main className="min-h-screen bg-white">
+      {/* Header */}
+      <header className="border-b border-gray-200 bg-white sticky top-0 z-40">
+        <div className="container-clean py-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">🃏 MTG Decks</h1>
+              <p className="text-gray-500 text-sm mt-1">Explore and build Magic decks</p>
             </div>
+            <Link
+              href="/decks/create"
+              className="px-6 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition"
+            >
+              + Create Deck
+            </Link>
           </div>
         </div>
-      </section>
-
-      {/* Stats Section */}
-      <section className="py-12 bg-slate-900/50 border-y border-slate-700">
-        <div className="max-w-7xl mx-auto px-4 md:px-6">
-          <StatsGrid
-            stats={[
-              { label: 'Total Cards', value: '28,000+', icon: '🎴' },
-              { label: 'Active Decks', value: '45,000+', icon: '📦' },
-              { label: 'Formats', value: '7', icon: '⚔️' },
-              { label: 'Community', value: '50K+', icon: '👥' },
-            ]}
-          />
-        </div>
-      </section>
+      </header>
 
       {/* Main Content */}
-      <section className="py-16">
-        <div className="max-w-7xl mx-auto px-4 md:px-6">
-          {/* Trending Cards */}
-          <TrendingSection
-            title="🔥 Trending Cards"
-            description="Most popular cards in competitive decks this week"
-            href="/cards?sort=trending"
-          >
-            <CardGrid columns={5}>
-              {MOCK_CARDS.map((card) => (
-                <Link key={card.id} href={`/cards/${card.id}`}>
-                  <CardImage {...card} />
-                </Link>
-              ))}
-            </CardGrid>
-          </TrendingSection>
+      <div className="container-clean py-12">
+        {/* Filter Section */}
+        <div className="mb-12">
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">Formats</h2>
+          <div className="flex flex-wrap gap-3">
+            <button
+              onClick={() => setSelectedFormat('all')}
+              className={`px-4 py-2 rounded-lg font-medium transition ${
+                selectedFormat === 'all'
+                  ? 'bg-indigo-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              All Formats
+            </button>
+            <button
+              onClick={() => setSelectedFormat('Commander')}
+              className={`px-4 py-2 rounded-lg font-medium transition ${
+                selectedFormat === 'Commander'
+                  ? 'bg-indigo-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              Commander
+            </button>
+            <button
+              onClick={() => setSelectedFormat('Modern')}
+              className={`px-4 py-2 rounded-lg font-medium transition ${
+                selectedFormat === 'Modern'
+                  ? 'bg-indigo-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              Modern
+            </button>
+          </div>
+        </div>
 
-          {/* Top Decks */}
-          <TrendingSection
-            title="🏆 Top Decks"
-            description="Most popular Commander decks right now"
-            href="/decks?sort=popular"
-          >
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {TRENDING_DECKS.map((deck) => (
-                <Link key={deck.id} href={`/decks/${deck.id}`}>
-                  <div className="p-5 bg-slate-800 hover:bg-slate-700 border border-slate-600 hover:border-purple-400 rounded-lg transition cursor-pointer group">
-                    <h3 className="text-lg font-semibold text-slate-100 group-hover:text-purple-300 mb-2 truncate">
-                      {deck.name}
-                    </h3>
-                    <p className="text-sm text-slate-400 mb-3">{deck.commander}</p>
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs bg-purple-600/30 text-purple-300 px-2 py-1 rounded-full">
-                        {deck.format}
-                      </span>
-                      <span className="text-xs text-slate-400">{deck.decks} decks</span>
-                    </div>
+        {/* Decks Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredDecks.map((deck) => (
+            <Link key={deck.id} href={`/decks/${deck.id}`}>
+              <div className="bg-white border border-gray-200 rounded-xl p-6 hover:shadow-lg hover:border-indigo-300 transition cursor-pointer h-full flex flex-col">
+                {/* Header */}
+                <div className="mb-4">
+                  <h3 className="text-lg font-bold text-gray-900 mb-1">{deck.name}</h3>
+                  <p className="text-sm text-gray-600">{deck.commander}</p>
+                </div>
+
+                {/* Description */}
+                <p className="text-sm text-gray-600 mb-4 flex-grow line-clamp-2">
+                  {deck.description}
+                </p>
+
+                {/* Colors */}
+                <div className="mb-4 flex gap-2">
+                  {deck.colors.map((color) => (
+                    <span key={color} className="text-xl">
+                      {colorSymbols[color] || color}
+                    </span>
+                  ))}
+                </div>
+
+                {/* Stats */}
+                <div className="grid grid-cols-3 gap-3 p-3 bg-gray-50 rounded-lg mb-4">
+                  <div className="text-center">
+                    <p className="text-xs text-gray-500 font-medium">CARDS</p>
+                    <p className="text-lg font-bold text-gray-900">{deck.cards}</p>
                   </div>
-                </Link>
-              ))}
-            </div>
-          </TrendingSection>
+                  <div className="text-center border-l border-r border-gray-200">
+                    <p className="text-xs text-gray-500 font-medium">FORMAT</p>
+                    <p className="text-sm font-bold text-gray-900">{deck.format}</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-xs text-gray-500 font-medium">VIEWS</p>
+                    <p className="text-lg font-bold text-gray-900">{deck.popularity}</p>
+                  </div>
+                </div>
 
-          {/* New Cards */}
-          <TrendingSection
-            title="✨ Latest Cards"
-            description="Recently released and hotly anticipated Magic cards"
-            href="/cards?sort=new"
-          >
-            <CardGrid columns={5}>
-              {MOCK_CARDS.slice(0, 5).map((card) => (
-                <Link key={card.id} href={`/cards/${card.id}`}>
-                  <CardImage {...card} />
-                </Link>
-              ))}
-            </CardGrid>
-          </TrendingSection>
+                {/* Action */}
+                <button className="w-full py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition">
+                  View Deck →
+                </button>
+              </div>
+            </Link>
+          ))}
         </div>
-      </section>
 
-      {/* CTA Section */}
-      <section className="py-16 border-t border-slate-700">
-        <div className="max-w-4xl mx-auto px-4 md:px-6 text-center">
-          <h2 className="text-3xl md:text-4xl font-bold text-slate-100 mb-4">
-            Start Building Your Deck
-          </h2>
-          <p className="text-slate-400 mb-8">
-            Join our community of Magic players and explore thousands of decks and strategies.
-          </p>
-          <Link
-            href="/auth"
-            className="px-8 py-3 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-semibold rounded-lg transition-all hover:shadow-lg hover:shadow-purple-500/50 inline-block"
-          >
-            Get Started Free
-          </Link>
-        </div>
-      </section>
+        {/* Empty State */}
+        {filteredDecks.length === 0 && (
+          <div className="text-center py-12">
+            <p className="text-gray-500 text-lg">No decks found in this format</p>
+          </div>
+        )}
+      </div>
     </main>
   )
 }
