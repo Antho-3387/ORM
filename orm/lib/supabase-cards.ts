@@ -43,7 +43,8 @@ export async function searchCardsOptimized(query: string): Promise<Card[]> {
     if (scryfallCards.length > 0) {
       // Sauvegarder dans Supabase pour les prochaines fois (non-bloquant)
       scryfallCards.forEach(card => {
-        supabase.from('Card').upsert([
+        // Fire and forget - sauvegarde en arrière-plan sans bloquer
+        void supabase.from('Card').upsert([
           {
             scryfall_id: card.id,
             name: card.name,
@@ -52,7 +53,7 @@ export async function searchCardsOptimized(query: string): Promise<Card[]> {
             mana_value: card.mana_value,
             colors: JSON.stringify(card.colors || []),
           },
-        ]).catch(() => {}) // Ignorer silencieusement les erreurs d'upsert
+        ], { onConflict: 'scryfall_id' }).select().catch(() => {}) // Ignorer silencieusement les erreurs d'upsert
       })
 
       cardCache.set(query, { data: scryfallCards as Card[], timestamp: Date.now() })
