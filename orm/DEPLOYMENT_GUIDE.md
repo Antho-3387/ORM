@@ -1,53 +1,182 @@
-# 🚀 Guide Complet du Déploiement sur Render
+# 🚀 Deployment Guide - MTG Deck Hub
 
-## Étape 1: Préparer votre base de données PostgreSQL
+> Instructions pour déployer votre application en production
 
-### 1.1 Obtenir la connection string
-Vous avez besoin d'une base PostgreSQL (locale ou cloud). Récupérez:
+---
+
+## 📋 Quick Navigation
+1. [Vercel (Recommandé)](#vercel)
+2. [Render](#render)
+3. [Docker](#docker)
+4. [Environment Variables](#env)
+
+---
+
+## 🚀 Vercel (Recommandé) {#vercel}
+
+### Meilleure option pour Next.js
+
+1. **Préparer le repo**
+   ```bash
+   git add .
+   git commit -m "Ready for deployment"
+   git push
+   ```
+
+2. **Aller sur [vercel.com](https://vercel.com)**
+   - Click "New Project"
+   - Connecter GitHub
+   - Sélectionner le repo
+   - Configurer le dossier `orm`
+
+3. **Settings:**
+   ```
+   Framework: Next.js
+   Root Directory: ./orm
+   Build: npm run build
+   Output: .next
+   ```
+
+4. **Add Environment Variables:**
+   ```
+   DATABASE_URL=postgresql://...
+   NEXT_PUBLIC_SCRYFALL_API=https://api.scryfall.com
+   ```
+
+5. **Deploy!**
+   - Click Deploy et c'est fini
+   - Vercel créera un domain automatique
+
+---
+
+## 🎨 Render {#render}
+
+Si vous utilisez Render au lieu de Vercel:
+
+1. **Créer Render account** - [render.com](https://render.com)
+
+2. **Créer New Web Service**
+   - Connecter GitHub repo
+   - Sélectionner le repo
+
+3. **Configure**
+   ```
+   Name: mtg-deck-hub
+   Environment: Node
+   Build Command: npm install && npm run build
+   Start Command: npm start
+   Root Directory: orm
+   ```
+
+4. **Environment Variables**
+   ```
+   DATABASE_URL=postgresql://user:pass@host/db
+   NODE_ENV=production
+   ```
+
+5. **Deploy**
+   - Click Deploy via Render UI
+
+---
+
+## 🐳 Docker {#docker}
+
+### Option pour déploiement custom
+
+**Créer Dockerfile:**
+```dockerfile
+# orm/Dockerfile
+
+FROM node:18-alpine
+
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm ci --only=production
+
+COPY . .
+RUN npm run build
+
+EXPOSE 3000
+
+CMD ["npm", "start"]
 ```
-DATABASE_URL: postgresql://user:password@host:port/database
-```
 
-## Étape 2: Configurer localement
-
-### 2.1 Copier .env.local
+**Build & Run:**
 ```bash
-cd orm
-cp .env.example .env.local
+docker build -t mtg-deck-hub .
+docker run -p 3000:3000 \
+  -e DATABASE_URL="postgresql://..." \
+  mtg-deck-hub
 ```
 
-### 2.2 Remplir les variables
-```
+---
+
+## 🔐 Environment Variables {#env}
+
+### .env.local (local development)
+
+```env
 DATABASE_URL=postgresql://user:password@localhost:5432/orm
-DIRECT_URL=postgresql://user:password@localhost:5432/orm
+NEXT_PUBLIC_SCRYFALL_API=https://api.scryfall.com
 ```
 
-### 2.3 Initialiser la BD
+### Production (Vercel/Render)
+
+Dans la plateforme:
+- Settings → Environment Variables
+- Ajouter chaque variable depuis .env.local
+
+---
+
+## 📋 Pre-Deployment Checklist
+
 ```bash
-npm install
-npx prisma migrate dev --name init
-npx prisma generate
+# 1. Test build
+npm run build
+
+# 2. Test server
+npm run start
+
+# 3. Run linter
+npm run lint
+
+# 4. Check for errors
+npm run lint -- --fix
+
+# 5. All pages work
+# Visiter chaque page
+
+# 6. Images load
+# Vérifier les images Scryfall
 ```
 
-### 2.4 Tester localement
+---
+
+## ✅ Post-Deployment
+
+### Verify Deployment
+
 ```bash
-npm run dev
-# Visiter http://localhost:3000
+# Test production URL
+curl https://your-app.vercel.app/
+
+# Check pages load
+https://your-app.vercel.app/
+https://your-app.vercel.app/cards
+https://your-app.vercel.app/decks
+https://your-app.vercel.app/statistics
 ```
 
-## Étape 3: Pousser sur GitHub
+### Monitor Performance
 
-### 3.1 Initialiser Git
-```bash
-cd orm
-git init
-git add .
-git commit -m "🃏 Magic Decks App - Initial commit"
-git branch -M main
-```
+- [Vercel Analytics](https://vercel.com) - Built-in
+- [Render Dashboard](https://render.com) - If using Render
+- [Google PageSpeed Insights](https://pagespeed.web.dev)
 
-### 3.2 Créer repo GitHub
-1. Aller sur https://github.com/new
+---
+
+**Prêt? Deployez avec confiance! 🚀**
 2. Créer un repo: `magic-decks`
 3. Copier l'URL
 
