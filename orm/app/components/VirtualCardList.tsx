@@ -259,13 +259,19 @@ function GalleryView({ cards, loading }: { cards: CardInfo[]; loading?: boolean 
 }
 
 /**
- * Vue d'une carte avec Lazy Loading
+ * Vue d'une carte avec Lazy Loading via API
+ * 
+ * CORRECTION CORS:
+ * - Ne charge plus les images côté client (CORS bloqué par Scryfall)
+ * - Appelle /api/cards/image?name=CardName au lieu de Scryfall direct
+ * - Cette API route appelle Scryfall côté SERVEUR (pas de CORS!)
  * 
  * IntersectionObserver = API native du navigateur
  * Détecte quand l'élément devient visible = charge l'image
  */
 function LazyCardImage({ card }: { card: CardInfo }) {
   const [isVisible, setIsVisible] = useState(false)
+  const [imageUrl, setImageUrl] = useState<string | null>(null)
   const [imageError, setImageError] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
@@ -275,7 +281,7 @@ function LazyCardImage({ card }: { card: CardInfo }) {
       ([entry]) => {
         if (entry.isIntersecting) {
           setIsVisible(true)
-          // Une fois chargée, arrêter l'observation (optimisation)
+          // Une fois visible, arrêter l'observation
           observer.unobserve(entry.target)
         }
       },
@@ -288,6 +294,29 @@ function LazyCardImage({ card }: { card: CardInfo }) {
 
     return () => observer.disconnect()
   }, [])
+
+  // Charger l'image quand elle devient visible
+  useEffect(() => {
+    if (!isVisible) return
+
+    const loadImage = async () => {
+      try {
+        const response = await fetch(`/api/cards/image?name=${encodeURIComponent(card.name)}`)
+        const data = await response.json()
+        
+        if (data.imageUrl) {
+          setImageUrl(data.imageUrl)
+        } else {
+          setImageError(true)
+        }
+      } catch (error) {
+        console.error(`Error loading image for ${card.name}:`, error)
+        setImageError(true)
+      }
+    }
+
+    loadImage()
+  }, [isVisible, card.name])
 
   return (
     <div
@@ -305,7 +334,7 @@ function LazyCardImage({ card }: { card: CardInfo }) {
       }}
     >
       {/* Skeleton Loader: affiche une animation pendant le chargement */}
-      {!isVisible || !card.imageUrl ? (
+      {!isVisible || !imageUrl ? (
         <div style={{
           width: '100%',
           height: '100%',
@@ -319,7 +348,7 @@ function LazyCardImage({ card }: { card: CardInfo }) {
         </div>
       ) : (
         <img
-          src={card.imageUrl}
+          src={imageUrl}
           alt={card.name}
           onError={() => setImageError(true)}
           style={{
@@ -331,7 +360,7 @@ function LazyCardImage({ card }: { card: CardInfo }) {
       )}
 
       {/* Quantité badge */}
-      {card.quantity > 1 && card.imageUrl && (
+      {card.quantity > 1 && imageUrl && (
         <div
           style={{
             position: 'absolute',

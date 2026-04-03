@@ -44,7 +44,10 @@ function parseDecklist(list: string): CardInfo[] {
 const imageCache = new Map<string, string | null>()
 
 /**
- * Récupère l'image d'une carte via Scryfall avec cache
+ * Récupère l'image d'une carte via Supabase avec cache
+ * 
+ * ⚠️ IMPORTANT: Cet appel est côté SERVEUR uniquement
+ * (utilisé par les API routes, pas par le client)
  */
 async function fetchCardImageWithCache(cardName: string): Promise<string | undefined> {
   const cacheKey = cardName.toLowerCase()
