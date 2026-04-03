@@ -4,7 +4,7 @@
 
 import { searchCards } from './scryfall'
 
-export interface CardInfo {
+interface CardInfo {
   quantity: number
   name: string
   imageUrl?: string
@@ -15,7 +15,7 @@ export interface CardInfo {
 /**
  * Parse une decklist au format "Quantité Nomdelacarte"
  */
-export function parseDecklist(list: string): CardInfo[] {
+function parseDecklist(list: string): CardInfo[] {
   const lines = list.split('\n').filter(line => line.trim())
   const cards: CardInfo[] = []
 
@@ -39,39 +39,68 @@ export function parseDecklist(list: string): CardInfo[] {
 }
 
 /**
- * Récupère l'image d'une carte via Scryfall
+ * Cache simple pour les images de cartes
  */
-export async function fetchCardImage(cardName: string): Promise<string | undefined> {
+const imageCache = new Map<string, string | null>()
+
+/**
+ * Récupère l'image d'une carte via Scryfall avec cache
+ */
+async function fetchCardImageWithCache(cardName: string): Promise<string | undefined> {
+  const cacheKey = cardName.toLowerCase()
+  
+  // Vérifier le cache
+  if (imageCache.has(cacheKey)) {
+    const cached = imageCache.get(cacheKey)
+    return cached || undefined
+  }
+
   try {
     const results = await searchCards(`!"${cardName}"`)
     
-    if (results.length > 0) {
-      return results[0].image_uris?.normal
+    if (results.length > 0 && results[0].image_uris?.normal) {
+      const imageUrl = results[0].image_uris.normal
+      imageCache.set(cacheKey, imageUrl)
+      return imageUrl
     }
   } catch (error) {
     console.error(`Error fetching image for ${cardName}:`, error)
   }
   
+  // Cache le fait qu'on n'a pas trouvé l'image
+  imageCache.set(cacheKey, null)
   return undefined
 }
 
 /**
- * Récupère les images pour toutes les cartes (avec cache)
+ * Récupère les images pour toutes les cartes avec délai
  */
-export async function fetchAllCardImages(cards: CardInfo[]): Promise<CardInfo[]> {
+async function fetchAllCardImages(cards: CardInfo[]): Promise<CardInfo[]> {
   const updated: CardInfo[] = []
 
-  for (const card of cards) {
-    const imageUrl = await fetchCardImage(card.name)
-    updated.push({
-      ...card,
-      imageUrl,
-      error: imageUrl ? undefined : 'Image non trouvée'
-    })
+  for (let i = 0; i < cards.length; i++) {
+    const card = cards[i]
+    try {
+      const imageUrl = await fetchCardImageWithCache(card.name)
+      updated.push({
+        ...card,
+        imageUrl,
+        error: imageUrl ? undefined : undefined
+      })
+    } catch (error) {
+      updated.push({
+        ...card,
+        error: 'Erreur de chargement'
+      })
+    }
     
-    // Respecter le rate limit de Scryfall (100ms entre requêtes)
-    await new Promise(resolve => setTimeout(resolve, 100))
+    // Respecter le rate limit de Scryfall (délai progressif)
+    if (i < cards.length - 1) {
+      await new Promise(resolve => setTimeout(resolve, 150))
+    }
   }
 
   return updated
 }
+
+export { parseDecklist, fetchAllCardImages, fetchCardImageWithCache, CardInfo }
