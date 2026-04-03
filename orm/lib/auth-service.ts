@@ -110,7 +110,7 @@ export async function signIn(email: string, password: string): Promise<AuthRespo
             },
           ])
           .select()
-          .single()
+          .maybeSingle()
 
         if (createError) {
           // Ignore duplicate key errors - user might already exist
@@ -183,9 +183,19 @@ export async function getCurrentUser(): Promise<User | null> {
       .from('User')
       .select('*')
       .eq('id', user.id)
-      .single()
+      .maybeSingle()
 
-    return userData as User || null
+    // Return DB user if found, otherwise construct from auth user
+    if (userData) {
+      return userData as User
+    }
+    
+    // Fallback to auth user data
+    return {
+      id: user.id,
+      email: user.email || 'user@example.com',
+      name: user.email?.split('@')[0] || 'User',
+    } as User
   } catch (error) {
     return null
   }
@@ -201,9 +211,18 @@ export function onAuthStateChange(callback: (user: User | null) => void) {
         .from('User')
         .select('*')
         .eq('id', session.user.id)
-        .single()
+        .maybeSingle()
       
-      callback(userData as User || null)
+      if (userData) {
+        callback(userData as User)
+      } else {
+        // Fallback to auth user data if not found in DB
+        callback({
+          id: session.user.id,
+          email: session.user.email || 'user@example.com',
+          name: session.user.email?.split('@')[0] || 'User',
+        } as User)
+      }
     } else {
       callback(null)
     }

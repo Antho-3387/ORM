@@ -122,7 +122,7 @@ export async function getCardById(id: string): Promise<Card | null> {
       .from('Card')
       .select('*')
       .eq('id', id)
-      .single()
+      .maybeSingle()
 
     return data as Card || null
   } catch (error) {
@@ -140,7 +140,7 @@ export async function saveCard(card: Partial<Card>): Promise<Card | null> {
       .from('Card')
       .upsert([card])
       .select()
-      .single()
+      .maybeSingle()
 
     return data as Card || null
   } catch (error) {

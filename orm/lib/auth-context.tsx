@@ -39,33 +39,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               .maybeSingle()
             if (userError) {
               console.error('User fetch error:', userError)
-              // Use auth user data as fallback
-              const userData = {
+              // Use auth user data as fallback with safe email
+              const fallbackUser = {
                 id: session.user.id,
-                email: session.user.email,
+                email: session.user.email || 'user@example.com',
               }
-              setUser(userData)
+              setUser(fallbackUser)
             } else if (userData) {
               setUser(userData)
             } else {
               // User doesn't exist in DB, create it
+              const userEmail = session.user.email || 'user@example.com'
               const { data: created } = await supabase
                 .from('User')
                 .insert([
                   {
                     id: session.user.id,
-                    email: session.user.email,
+                    email: userEmail,
                     password: '',
-                    name: session.user.email?.split('@')[0] || 'User',
+                    name: userEmail.split('@')[0] || 'User',
                   },
                 ])
                 .select()
                 .maybeSingle()
-              setUser(created || { id: session.user.id, email: session.user.email })
+              setUser(created || { id: session.user.id, email: userEmail })
             }
           } catch (err) {
             console.error('User fetch exception:', err)
-            setUser({ id: session.user.id, email: session.user.email })
+            const fallbackEmail = session.user.email || 'user@example.com'
+            setUser({ id: session.user.id, email: fallbackEmail })
           }
         }
       } catch (error) {
