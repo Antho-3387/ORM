@@ -137,26 +137,6 @@ export default function DeckDetailsPage({ params }: DeckDetailsPageProps) {
         <div style={{ background: '#16213e', border: '1px solid #404050', borderRadius: '12px', padding: '2rem', marginBottom: '2rem' }}>
           <CardGallery deckList={deck.list} />
         </div>
-
-        {/* Decklist Text */}
-        <div style={{ background: '#16213e', border: '1px solid #404050', borderRadius: '12px', padding: '2rem' }}>
-          <h2 style={{ fontSize: '1.5rem', fontWeight: '600', color: '#ffffff', marginBottom: '1rem' }}>
-            Decklist (Texte)
-          </h2>
-          <pre style={{
-            background: '#0f3460',
-            color: '#e0e0e0',
-            padding: '1.5rem',
-            borderRadius: '6px',
-            overflow: 'auto',
-            fontSize: '0.9rem',
-            lineHeight: '1.6',
-            whiteSpace: 'pre-wrap',
-            wordWrap: 'break-word'
-          }}>
-            {deck.list}
-          </pre>
-        </div>
       </div>
     </main>
   )

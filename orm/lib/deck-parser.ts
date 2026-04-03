@@ -56,7 +56,13 @@ async function fetchCardImageWithCache(cardName: string): Promise<string | undef
   }
 
   try {
-    const results = await searchCards(`!"${cardName}"`)
+    // Essayer exact match d'abord
+    let results = await searchCards(`!"${cardName}"`)
+    
+    // Si pas trouvé, essayer sans exact match (fuzzy search)
+    if (results.length === 0) {
+      results = await searchCards(cardName)
+    }
     
     if (results.length > 0 && results[0].image_uris?.normal) {
       const imageUrl = results[0].image_uris.normal
@@ -64,7 +70,7 @@ async function fetchCardImageWithCache(cardName: string): Promise<string | undef
       return imageUrl
     }
   } catch (error) {
-    console.error(`Error fetching image for ${cardName}:`, error)
+    console.warn(`Error fetching image for "${cardName}":`, error)
   }
   
   // Cache le fait qu'on n'a pas trouvé l'image
@@ -75,7 +81,7 @@ async function fetchCardImageWithCache(cardName: string): Promise<string | undef
 /**
  * Récupère les images pour toutes les cartes avec délai
  */
-async function fetchAllCardImages(cards: CardInfo[]): Promise<CardInfo[]> {
+async function fetchAllCardImages(cards: CardInfo[], onProgress?: (count: number) => void): Promise<CardInfo[]> {
   const updated: CardInfo[] = []
 
   for (let i = 0; i < cards.length; i++) {
@@ -92,6 +98,11 @@ async function fetchAllCardImages(cards: CardInfo[]): Promise<CardInfo[]> {
         ...card,
         error: 'Erreur de chargement'
       })
+    }
+    
+    // Callback pour mise à jour progression
+    if (onProgress) {
+      onProgress(updated.filter(c => c.imageUrl).length)
     }
     
     // Respecter le rate limit de Scryfall (délai progressif)

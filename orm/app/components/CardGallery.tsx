@@ -31,9 +31,11 @@ export function CardGallery({ deckList }: CardGalleryProps) {
         setCards(parsed)
 
         // Charger les images progressivement
-        const withImages = await fetchAllCardImages(parsed)
+        const withImages = await fetchAllCardImages(parsed, (count) => {
+          setLoadedCount(count)
+        })
         setCards(withImages)
-        setLoadedCount(withImages.length)
+        setLoadedCount(withImages.filter(c => c.imageUrl).length)
       } catch (error) {
         console.error('Error loading cards:', error)
         setLoadedCount(0)
@@ -45,27 +47,21 @@ export function CardGallery({ deckList }: CardGalleryProps) {
     loadCards()
   }, [deckList])
 
-  if (loading && cards.length === 0) {
+  if (cards.length === 0) {
     return (
       <div style={{ textAlign: 'center', padding: '2rem', color: '#a0a0b0' }}>
-        <p>Chargement des cartes...</p>
+        {loading ? 'Chargement des cartes...' : 'Aucune carte trouvée'}
       </div>
     )
   }
 
-  if (cards.length === 0) {
-    return (
-      <div style={{ textAlign: 'center', padding: '2rem', color: '#a0a0b0' }}>
-        Aucune carte trouvée
-      </div>
-    )
-  }
+  const cardsWithImages = cards.filter(c => c.imageUrl).length
 
   return (
     <div>
       <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', justifyContent: 'space-between', alignItems: 'center' }}>
         <h3 style={{ fontSize: '1.2rem', fontWeight: '600', color: '#ffffff' }}>
-          Cartes ({cards.length}) {loading && `- Chargement ${loadedCount}/${cards.length}`}
+          Cartes ({cards.length}) {loading && `- Chargement ${cardsWithImages}/${cards.length}`}
         </h3>
         <div style={{ display: 'flex', gap: '0.5rem' }}>
           <button
