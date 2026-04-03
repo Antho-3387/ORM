@@ -36,16 +36,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               .from('User')
               .select('*')
               .eq('id', session.user.id)
-              .single()
+              .maybeSingle()
             if (userError) {
               console.error('User fetch error:', userError)
-              setUser(null)
+              // Use auth user data as fallback
+              const userData = {
+                id: session.user.id,
+                email: session.user.email,
+              }
+              setUser(userData)
+            } else if (userData) {
+              setUser(userData)
             } else {
-              setUser(userData || null)
+              // User doesn't exist in DB, create it
+              const { data: created } = await supabase
+                .from('User')
+                .insert([
+                  {
+                    id: session.user.id,
+                    email: session.user.email,
+                    password: '',
+                    name: session.user.email?.split('@')[0] || 'User',
+                  },
+                ])
+                .select()
+                .maybeSingle()
+              setUser(created || { id: session.user.id, email: session.user.email })
             }
           } catch (err) {
             console.error('User fetch exception:', err)
-            setUser(null)
+            setUser({ id: session.user.id, email: session.user.email })
           }
         }
       } catch (error) {

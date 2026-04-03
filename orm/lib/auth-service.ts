@@ -47,14 +47,25 @@ export async function signUp(email: string, password: string, name?: string): Pr
           },
         ])
         .select()
-        .single()
+        .maybeSingle()
 
       if (dbError) {
         console.error('DB Error:', dbError)
+        // If it's a duplicate key error, that's OK - just return the auth user
+        if (dbError.message.includes('duplicate')) {
+          return {
+            user: {
+              id: authData.user.id,
+              email: authData.user.email,
+              name: name || email.split('@')[0],
+            },
+            error: null,
+          }
+        }
         return { user: null, error: 'Erreur lors de la création du profil: ' + dbError.message }
       }
 
-      return { user: data as User, error: null }
+      return { user: (data || authData.user) as User, error: null }
     }
 
     return { user: null, error: 'Erreur inconnue lors de l\'inscription' }
@@ -80,17 +91,59 @@ export async function signIn(email: string, password: string): Promise<AuthRespo
 
     if (data.user) {
       // Récupérer les infos utilisateur depuis la DB
-      const { data: userData, error: dbError } = await supabase
+      let { data: userData, error: dbError } = await supabase
         .from('User')
         .select('*')
         .eq('id', data.user.id)
-        .single()
+        .maybeSingle()
 
-      if (dbError) {
-        return { user: null, error: dbError.message }
+      // If user doesn't exist in DB yet, create it
+      if (!userData && !dbError) {
+        const { data: newUser, error: createError } = await supabase
+          .from('User')
+          .insert([
+            {
+              id: data.user.id,
+              email: data.user.email,
+              password: '',
+              name: email.split('@')[0],
+            },
+          ])
+          .select()
+          .single()
+
+        if (createError) {
+          // Ignore duplicate key errors - user might already exist
+          if (!createError.message.includes('duplicate')) {
+            console.error('Create user error:', createError)
+            return { user: null, error: 'Erreur lors de la création du profil' }
+          }
+          // Try to fetch again
+          const { data: retryData } = await supabase
+            .from('User')
+            .select('*')
+            .eq('id', data.user.id)
+            .maybeSingle()
+          userData = retryData
+        } else {
+          userData = newUser
+        }
       }
 
-      return { user: userData as User, error: null }
+      if (dbError) {
+        console.error('DB Error:', dbError)
+        // Return auth user data even if DB lookup fails
+        return {
+          user: {
+            id: data.user.id,
+            email: data.user.email,
+            name: email.split('@')[0],
+          },
+          error: null,
+        }
+      }
+
+      return { user: (userData || data.user) as User, error: null }
     }
 
     return { user: null, error: 'Unknown error' }
