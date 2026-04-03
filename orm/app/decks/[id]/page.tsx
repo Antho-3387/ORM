@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { use, useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/lib/auth-context'
+import { CardGallery } from '@/app/components/CardGallery'
 
 interface Deck {
   id: string
@@ -90,7 +91,7 @@ export default function DeckDetailsPage({ params }: DeckDetailsPageProps) {
 
   return (
     <main style={{ minHeight: '100vh', background: '#1a1a2e', padding: '2rem' }}>
-      <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
+      <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
         <Link href="/decks">
           <button style={{ background: '#404050', marginBottom: '2rem' }}>← Retour aux decks</button>
         </Link>
@@ -132,9 +133,15 @@ export default function DeckDetailsPage({ params }: DeckDetailsPageProps) {
           )}
         </div>
 
+        {/* Card Gallery */}
+        <div style={{ background: '#16213e', border: '1px solid #404050', borderRadius: '12px', padding: '2rem', marginBottom: '2rem' }}>
+          <CardGallery deckList={deck.list} />
+        </div>
+
+        {/* Decklist Text */}
         <div style={{ background: '#16213e', border: '1px solid #404050', borderRadius: '12px', padding: '2rem' }}>
           <h2 style={{ fontSize: '1.5rem', fontWeight: '600', color: '#ffffff', marginBottom: '1rem' }}>
-            Decklist
+            Decklist (Texte)
           </h2>
           <pre style={{
             background: '#0f3460',
