@@ -159,7 +159,7 @@ export function useCardSearch(initialQuery: string = '') {
         }
 
         // 3️⃣ Sauvegarder dans les caches (frontend uniquement, backend c'est auto)
-        if (source === 'api' && data.length > 0) {
+        if (source === 'api' && data && data.length > 0) {
           const entry: CacheEntry = {
             data,
             timestamp: Date.now(),
@@ -177,7 +177,7 @@ export function useCardSearch(initialQuery: string = '') {
           }
         }
 
-        setResults(data)
+        setResults(data || [])
         setCacheSource(source)
         setDuration(Date.now() - startTime)
       } catch (err: any) {

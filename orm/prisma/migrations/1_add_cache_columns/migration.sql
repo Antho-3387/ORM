@@ -1,0 +1,11 @@
+-- AddColumn cachedAt
+ALTER TABLE "Card" ADD COLUMN "cachedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;
+
+-- AddColumn searchCount  
+ALTER TABLE "Card" ADD COLUMN "searchCount" INTEGER NOT NULL DEFAULT 1;
+
+-- AddColumn lastSearchedAt
+ALTER TABLE "Card" ADD COLUMN "lastSearchedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;
+
+-- AddColumn source
+ALTER TABLE "Card" ADD COLUMN "source" TEXT NOT NULL DEFAULT 'scryfall';

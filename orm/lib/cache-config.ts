@@ -301,5 +301,4 @@ export async function performHealthCheck(): Promise<{
 // ================================================================
 // EXPORTS
 // ================================================================
-
-export { CACHE_CONFIG, ENV, validateConfig, DEPLOYMENT_GUIDE, performHealthCheck }
+// Already exported inline above
