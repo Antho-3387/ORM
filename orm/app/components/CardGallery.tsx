@@ -12,6 +12,7 @@ export function CardGallery({ deckList }: CardGalleryProps) {
   const [loading, setLoading] = useState(true)
   const [loadedCount, setLoadedCount] = useState(0)
   const [viewMode, setViewMode] = useState<'list' | 'gallery'>('gallery')
+  const [copied, setCopied] = useState(false)
 
   useEffect(() => {
     const loadCards = async () => {
@@ -57,6 +58,16 @@ export function CardGallery({ deckList }: CardGalleryProps) {
 
   const cardsWithImages = cards.filter(c => c.imageUrl).length
 
+  const handleCopyDecklist = async () => {
+    try {
+      await navigator.clipboard.writeText(deckList)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch (err) {
+      console.error('Failed to copy:', err)
+    }
+  }
+
   return (
     <div>
       <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -64,6 +75,22 @@ export function CardGallery({ deckList }: CardGalleryProps) {
           Cartes ({cards.length}) {loading && `- Chargement ${cardsWithImages}/${cards.length}`}
         </h3>
         <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <button
+            onClick={handleCopyDecklist}
+            style={{
+              padding: '0.5rem 1rem',
+              background: copied ? '#51cf66' : '#404050',
+              color: '#ffffff',
+              border: 'none',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              fontSize: '0.9rem',
+              fontWeight: '500',
+              transition: 'background 0.2s'
+            }}
+          >
+            {copied ? '✓ Copié!' : 'Copier'}
+          </button>
           <button
             onClick={() => setViewMode('gallery')}
             style={{

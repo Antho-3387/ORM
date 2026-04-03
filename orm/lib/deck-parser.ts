@@ -79,39 +79,49 @@ async function fetchCardImageWithCache(cardName: string): Promise<string | undef
 }
 
 /**
- * Récupère les images pour toutes les cartes avec délai
+ * Récupère les images pour toutes les cartes avec chargement parallèle
  */
 async function fetchAllCardImages(cards: CardInfo[], onProgress?: (count: number) => void): Promise<CardInfo[]> {
-  const updated: CardInfo[] = []
+  const BATCH_SIZE = 6  // Charger 6 cartes en parallèle pour respecter le rate limit
+  const updated: CardInfo[] = new Array(cards.length).fill(null)
+  let completed = 0
 
-  for (let i = 0; i < cards.length; i++) {
-    const card = cards[i]
-    try {
-      const imageUrl = await fetchCardImageWithCache(card.name)
-      updated.push({
-        ...card,
-        imageUrl,
-        error: imageUrl ? undefined : undefined
-      })
-    } catch (error) {
-      updated.push({
-        ...card,
-        error: 'Erreur de chargement'
-      })
-    }
+  // Traiter par lots
+  for (let batch = 0; batch < cards.length; batch += BATCH_SIZE) {
+    const batchCards = cards.slice(batch, Math.min(batch + BATCH_SIZE, cards.length))
     
-    // Callback pour mise à jour progression
-    if (onProgress) {
-      onProgress(updated.filter(c => c.imageUrl).length)
-    }
+    // Charger les cartes du lot en parallèle
+    const promises = batchCards.map((card, idx) =>
+      fetchCardImageWithCache(card.name).then(imageUrl => ({
+        index: batch + idx,
+        card,
+        imageUrl
+      }))
+    )
+
+    const results = await Promise.all(promises)
     
-    // Respecter le rate limit de Scryfall (délai progressif)
-    if (i < cards.length - 1) {
-      await new Promise(resolve => setTimeout(resolve, 150))
+    // Mettre à jour les résultats
+    for (const result of results) {
+      updated[result.index] = {
+        ...result.card,
+        imageUrl: result.imageUrl,
+        error: result.imageUrl ? undefined : undefined
+      }
+      completed++
+      
+      if (onProgress) {
+        onProgress(completed)
+      }
+    }
+
+    // Délai entre les lots pour respecter le rate limit
+    if (batch + BATCH_SIZE < cards.length) {
+      await new Promise(resolve => setTimeout(resolve, 200))
     }
   }
 
-  return updated
+  return updated.filter((c): c is CardInfo => c !== null)
 }
 
 export { parseDecklist, fetchAllCardImages, fetchCardImageWithCache }
