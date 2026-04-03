@@ -44,9 +44,16 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const { name, description, userId, list } = body
+    const { id, name, description, userId, list } = body
 
     // Valider les champs requis
+    if (!id) {
+      return NextResponse.json(
+        { error: 'ID du deck est requis' },
+        { status: 400 }
+      )
+    }
+
     if (!name || !name.trim()) {
       return NextResponse.json(
         { error: 'Le nom du deck est requis' },
@@ -68,12 +75,15 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Préparer les données
+    // Préparer les données avec tous les champs
     const deckData = {
+      id: id,
       name: name.trim(),
       description: description ? description.trim() : null,
       userId: userId,
       list: list.trim(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     }
 
     // Insérer le deck

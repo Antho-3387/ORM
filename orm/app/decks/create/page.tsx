@@ -5,6 +5,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/lib/auth-context'
+import { generateId } from '@/lib/id-generator'
 
 export default function CreateDeckPage() {
   const [deckName, setDeckName] = useState('')
@@ -38,12 +39,18 @@ export default function CreateDeckPage() {
     setError('')
 
     try {
-      // Créer les données du deck
+      // Générer un ID unique
+      const deckId = generateId()
+
+      // Créer les données du deck avec l'ID généré
       const deckData = {
+        id: deckId,
         name: deckName.trim(),
         description: deckDescription.trim() || null,
         list: deckList.trim(),
         userId: user.id,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       }
 
       // Insérer le deck via Supabase
