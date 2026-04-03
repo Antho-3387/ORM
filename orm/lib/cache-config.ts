@@ -4,6 +4,8 @@
  * Centralise tous les paramètres et configurations
  */
 
+import prisma from '@/lib/prisma'
+
 // ================================================================
 // CONFIGURATION
 // ================================================================
@@ -289,7 +291,7 @@ export async function performHealthCheck(): Promise<{
   }
 
   // Overall status
-  const hasErrors = Object.values(checks).some(c => c.status === 'error')
+  const hasErrors = Object.values(checks).some((c: any) => c.status === 'error')
   const status = hasErrors ? 'error' : 'ok'
 
   return {
