@@ -8,6 +8,7 @@ import { useAuth } from '@/lib/auth-context'
 
 export default function CreateDeckPage() {
   const [deckName, setDeckName] = useState('')
+  const [deckDescription, setDeckDescription] = useState('')
   const [deckList, setDeckList] = useState('')
   const [saved, setSaved] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -23,8 +24,13 @@ export default function CreateDeckPage() {
       return
     }
 
-    if (!deckName.trim() || !deckList.trim()) {
-      setError('Complétez le nom et la decklist')
+    if (!deckName.trim()) {
+      setError('Entrez le nom du deck')
+      return
+    }
+
+    if (!deckList.trim()) {
+      setError('Entrez la decklist')
       return
     }
 
@@ -32,37 +38,43 @@ export default function CreateDeckPage() {
     setError('')
 
     try {
-      const { data, error: dbError } = await supabase
-        .from('Deck')
-        .insert([
-          {
-            name: deckName,
-            list: deckList,
-            userId: user.id,
-            createdAt: new Date().toISOString(),
-          },
-        ])
-        .select()
-        .single()
-
-      if (dbError) {
-        console.error('DB Error:', dbError)
-        setError('Erreur lors de la sauvegarde: ' + dbError.message)
-        return
+      // Créer les données du deck
+      const deckData = {
+        name: deckName.trim(),
+        description: deckDescription.trim() || null,
+        list: deckList.trim(),
+        userId: user.id,
       }
 
-      console.log('Deck saved:', data)
+      // Insérer le deck via Supabase
+      const { data: insertedData, error: insertError } = await supabase
+        .from('Deck')
+        .insert([deckData])
+        .select()
+        .maybeSingle()
+
+      if (insertError) {
+        console.error('Insert error:', insertError)
+        throw new Error(insertError.message || 'Erreur lors de la sauvegarde')
+      }
+
+      if (!insertedData) {
+        throw new Error('Impossible de créer le deck')
+      }
+
+      console.log('Deck créé:', insertedData)
       setSaved(true)
       
       setTimeout(() => {
         setSaved(false)
         setDeckName('')
+        setDeckDescription('')
         setDeckList('')
         router.push('/decks')
-      }, 2000)
+      }, 1500)
     } catch (err: any) {
-      console.error('Error:', err)
-      setError('Erreur: ' + err.message)
+      console.error('Erreur création deck:', err)
+      setError(err.message || 'Une erreur est survenue')
     } finally {
       setLoading(false)
     }
@@ -103,6 +115,19 @@ export default function CreateDeckPage() {
             value={deckName}
             onChange={(e) => setDeckName(e.target.value)}
             placeholder="Ex: Ma Deck Atraxa"
+            disabled={loading}
+          />
+        </div>
+
+        <div>
+          <label style={{ display: 'block', marginBottom: '1rem', fontSize: '1.1rem', fontWeight: '600' }}>
+            Description (optionnel)
+          </label>
+          <input
+            type="text"
+            value={deckDescription}
+            onChange={(e) => setDeckDescription(e.target.value)}
+            placeholder="Stratégie du deck..."
             disabled={loading}
           />
         </div>
