@@ -56,13 +56,17 @@ export function Navbar() {
         <div style={{
           display: 'flex',
           gap: '1rem',
-          alignItems: 'center'
+          alignItems: 'center',
+          height: '2.5rem'
         }}>
           {user ? (
             <>
               <span style={{
                 color: '#e0e0e0',
-                fontSize: '0.9rem'
+                fontSize: '0.9rem',
+                display: 'flex',
+                alignItems: 'center',
+                height: '100%'
               }}>
                 {user.name || user.email}
               </span>
@@ -75,7 +79,10 @@ export function Navbar() {
                   borderRadius: '4px',
                   border: 'none',
                   cursor: 'pointer',
-                  fontSize: '0.9rem'
+                  fontSize: '0.9rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  height: '100%'
                 }}
               >
                 Se déconnecter

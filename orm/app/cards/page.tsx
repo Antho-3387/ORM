@@ -5,15 +5,16 @@ import { useVirtualizer } from '@tanstack/react-virtual'
 import { Search } from 'lucide-react'
 
 /**
- * PAGE: /cards
+ * PAGE: /cards - GALERIE OPTIMISÉE
  * 
- * Galerie globale avec INFINITE SCROLL + VIRTUALISATION
- * 
- * CONCEPTS:
- * 1. INFINITE SCROLL: Charger automatiquement quand user scroll en bas
- * 2. VIRTUALISATION: Même avec 5000 cartes chargées, afficher que ~20
- * 3. RECHERCHE DEBOUNCED: Attendre 300ms avant de chercher
- * 4. LAZY LOADING: Images seulement quand visibles
+ * ✅ APPROCHE:
+ * 1. Une seule requête: chargement COMPLET de toutes les cartes au mount
+ * 2. Dedupliquées par ID (zéro doublon)
+ * 3. Virtualisation du rendu: max 20-30 cartes dans le DOM
+ * 4. Filtrage côté CLIENT (pas API)
+ * 5. Lazy loading images seulement
+ *
+ * Résultat: ~1000+ cartes → parfaitement fluide ✨
  */
 
 interface Card {
@@ -25,182 +26,139 @@ interface Card {
   colors?: string[]
 }
 
-interface ApiResponse {
-  success: boolean
-  data: Card[]
-  pagination: {
-    page: number
-    limit: number
-    total: number
-    pages: number
-  }
-  query: string
-  cached: boolean
-}
-
 export default function CardsGalleryPage() {
-  // ============================================================
-  // STATE MANAGEMENT
-  // ============================================================
-  
-  // Recherche
+  // STATE: Données
+  const [allCards, setAllCards] = useState<Card[]>([]) // TOUTES les cartes
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  // STATE: Recherche
   const [searchQuery, setSearchQuery] = useState('')
   const [debouncedQuery, setDebouncedQuery] = useState('')
 
-  // Cartes et pagination
-  const [cards, setCards] = useState<Card[]>([])
-  const [isLoading, setIsLoading] = useState(false)
-  const [hasMore, setHasMore] = useState(true)
-  const [currentPage, setCurrentPage] = useState(1)
-  const [totalPages, setTotalPages] = useState(0)
-  const [error, setError] = useState<string | null>(null)
+  // ============================================================
+  // ÉTAPE 1: Charger TOUTES les cartes au MOUNT (une seule fois)
+  // ============================================================
+  useEffect(() => {
+    const loadAllCards = async () => {
+      try {
+        setIsLoading(true)
+        setError(null)
 
-  // Virtualisation
-  const parentRef = useRef<HTMLDivElement>(null)
-  const virtualizer = useVirtualizer({
-    count: cards.length,
-    getScrollElement: () => parentRef.current,
-    estimateSize: useCallback(() => 280, []), // Hauteur estimée d'une carte
-    overscan: 20, // Pré-charger 20 cartes
-  })
+        const response = await fetch('/api/cards/all')
+        const data = await response.json()
+
+        if (!data.success || !Array.isArray(data.data)) {
+          setError('Erreur lors du chargement des cartes')
+          return
+        }
+
+        console.log(`Loaded ${data.data.length} unique cards`)
+        setAllCards(data.data)
+      } catch (err) {
+        console.error('Error loading cards:', err)
+        setError('Erreur réseau - impossible de charger les cartes')
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    loadAllCards()
+  }, []) // Dépendance vide = une seule exécution au mount
 
   // ============================================================
-  // ÉTAPE 1: DEBOUNCE de la recherche
-  // 
-  // Quand l'user tape, on attend 300ms avant de chercher
-  // Évite 100 requêtes pour "atraxa"
+  // ÉTAPE 2: Debouncer la recherche (attendre 300ms)
   // ============================================================
-  
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedQuery(searchQuery)
-      setCurrentPage(1)
-      setCards([])
     }, 300)
 
     return () => clearTimeout(timer)
   }, [searchQuery])
 
   // ============================================================
-  // ÉTAPE 2: Charger les cartes de la page actuelle
+  // ÉTAPE 3: Filtrer les cartes LOCALEMENT (pas API)
+  // Utiliser useMemo pour éviter les recalculs
   // ============================================================
-  
-  const loadCards = useCallback(async (page: number, query: string) => {
-    setIsLoading(true)
-    setError(null)
+  const filteredCards = useMemo(() => {
+    if (!debouncedQuery.trim()) return allCards
 
-    try {
-      const params = new URLSearchParams({
-        page: String(page),
-        limit: '50', // 50 cartes par page
-        ...(query && { q: query }),
-      })
-
-      const response = await fetch(`/api/cards/search?${params}`)
-      const data: any = await response.json()
-
-      // Vérifier si la réponse est valide et a les champs requis
-      if (!data || typeof data !== 'object') {
-        setError('Réponse invalide du serveur')
-        return
-      }
-
-      if (!data.success) {
-        setError(data.error || 'Erreur lors de la recherche')
-        return
-      }
-
-      // S'assurer que les données existent et que pagination est présente
-      const cardsData = Array.isArray(data.data) ? data.data : []
-      const paginationData = data.pagination || { page, limit: 50, total: 0, pages: 0 }
-
-      // ============================================================
-      // INFINITE SCROLL: Ajouter les cartes (pas remplacer)
-      // ============================================================
-      
-      if (page === 1) {
-        // Première page: remplacer
-        setCards(cardsData)
-      } else {
-        // Pages suivantes: ajouter à la fin
-        setCards(prev => [...prev, ...cardsData])
-      }
-
-      setCurrentPage(page)
-      setTotalPages(paginationData.pages || 0)
-      setHasMore(page < (paginationData.pages || 0))
-    } catch (err) {
-      console.error('Error loading cards:', err)
-      setError('Erreur réseau')
-    } finally {
-      setIsLoading(false)
-    }
-  }, [])
+    const q = debouncedQuery.toLowerCase()
+    return allCards.filter(
+      (card) =>
+        card.name.toLowerCase().includes(q) ||
+        card.type.toLowerCase().includes(q) ||
+        (card.colors && card.colors.some(c => c.toLowerCase().includes(q)))
+    )
+  }, [allCards, debouncedQuery])
 
   // ============================================================
-  // ÉTAPE 3: Charger quand la recherche change
+  // ÉTAPE 4: Virtualisation - Max ~20-30 cartes dans le DOM
   // ============================================================
-  
-  useEffect(() => {
-    loadCards(1, debouncedQuery)
-  }, [debouncedQuery, loadCards])
+  const parentRef = useRef<HTMLDivElement>(null)
 
-  // ============================================================
-  // ÉTAPE 4: INFINITE SCROLL - Détecter le bas du scroll
-  // 
-  // Chaque fois que le virtualizer change, on vérifie si on est en bas
-  // Si oui, charger la page suivante
-  // ============================================================
-  
-  useEffect(() => {
-    const [lastItem] = virtualizer.getVirtualItems().slice(-1) || []
-
-    if (!lastItem) return
-
-    // Vérifier si on a scrollé jusqu'au dernier item
-    // et s'il y a encore des pages à charger
-    if (lastItem.index >= cards.length - 1 && hasMore && !isLoading) {
-      loadCards(currentPage + 1, debouncedQuery)
-    }
-  }, [
-    virtualizer.getVirtualItems(),
-    cards.length,
-    hasMore,
-    isLoading,
-    currentPage,
-    debouncedQuery,
-    loadCards,
-  ])
-
-  // ============================================================
-  // RENDU
-  // ============================================================
+  const virtualizer = useVirtualizer({
+    count: filteredCards.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: useCallback(() => 280, []), // Hauteur estimée
+    overscan: 10, // Pré-charger 10 cartes avant/après viewport
+  })
 
   const virtualItems = virtualizer.getVirtualItems()
   const totalSize = virtualizer.getTotalSize()
 
+  // ============================================================
+  // RENDU
+  // ============================================================
   return (
     <main style={{ minHeight: '100vh', background: '#1a1a2e', padding: '2rem' }}>
       <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
         {/* HEADER */}
-        <h1 style={{
-          fontSize: '2.5rem',
-          fontWeight: '700',
-          color: '#ffffff',
-          marginBottom: '2rem',
-          textAlign: 'center',
-        }}>
+        <h1
+          style={{
+            fontSize: '2.5rem',
+            fontWeight: '700',
+            color: '#ffffff',
+            marginBottom: '1rem',
+            textAlign: 'center',
+          }}
+        >
           🃏 Galerie Cartes Magic
         </h1>
 
+        {/* STATS */}
+        <p
+          style={{
+            textAlign: 'center',
+            color: '#a0a0b0',
+            fontSize: '0.9rem',
+            marginBottom: '2rem',
+          }}
+        >
+          {isLoading ? (
+            'Chargement des cartes...'
+          ) : (
+            <>
+              <span style={{ color: '#3b82f6', fontWeight: '600' }}>
+                {filteredCards.length}
+              </span>
+              {' cartes '}
+              {debouncedQuery && `trouvées | ${allCards.length} au total`}
+            </>
+          )}
+        </p>
+
         {/* SEARCH BAR */}
-        <div style={{
-          marginBottom: '2rem',
-          background: '#16213e',
-          padding: '1.5rem',
-          borderRadius: '12px',
-          border: '1px solid #404050',
-        }}>
+        <div
+          style={{
+            marginBottom: '2rem',
+            background: '#16213e',
+            padding: '1.5rem',
+            borderRadius: '12px',
+            border: '1px solid #404050',
+          }}
+        >
           <div style={{ position: 'relative' }}>
             <Search
               size={20}
@@ -214,7 +172,7 @@ export default function CardsGalleryPage() {
             />
             <input
               type="text"
-              placeholder='Chercher des cartes (ex: "atraxa", "blue", "creature")...'
+              placeholder="Chercher (nom, type, couleur...)"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               style={{
@@ -229,113 +187,125 @@ export default function CardsGalleryPage() {
               }}
             />
           </div>
-          <p style={{
-            color: '#a0a0b0',
-            fontSize: '0.85rem',
-            marginTop: '0.5rem',
-          }}>
-            💡 Syntaxe Scryfall:  "!Nom exact"  |  "color:u"  |  "type:creature"
+          <p
+            style={{
+              color: '#a0a0b0',
+              fontSize: '0.85rem',
+              marginTop: '0.5rem',
+            }}
+          >
+            💡 Ex: "atraxa", "blue", "creature"
           </p>
         </div>
 
-        {/* STATS */}
-        {cards.length > 0 && (
-          <div style={{
-            marginBottom: '1.5rem',
-            color: '#a0a0b0',
-            fontSize: '0.9rem',
-          }}>
-            Affichage: <strong style={{ color: '#3b82f6' }}>{cards.length}</strong> cartes
-            {totalPages > 1 && ` (page ${currentPage}/${totalPages})`}
-          </div>
-        )}
-
         {/* ERROR STATE */}
         {error && (
-          <div style={{
-            background: '#ff6b6b',
-            color: '#fff',
-            padding: '1rem',
-            borderRadius: '6px',
-            marginBottom: '1.5rem',
-          }}>
+          <div
+            style={{
+              background: '#ff6b6b',
+              color: '#fff',
+              padding: '1rem',
+              borderRadius: '6px',
+              marginBottom: '1.5rem',
+            }}
+          >
             {error}
           </div>
         )}
 
-        {/* VIRTUALIZED GALLERY */}
-        {cards.length > 0 ? (
+        {/* LOADING STATE */}
+        {isLoading && (
           <div
-            ref={parentRef}
             style={{
-              height: 'calc(100vh - 400px)',
-              overflow: 'auto',
-              border: '1px solid #404050',
-              borderRadius: '12px',
+              textAlign: 'center',
+              padding: '3rem',
+              color: '#a0a0b0',
               background: '#16213e',
+              borderRadius: '12px',
+              border: '1px solid #404050',
             }}
           >
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))',
-                gap: '1rem',
-                padding: '1rem',
-                height: `${totalSize}px`,
-                position: 'relative',
-              }}
-            >
-              {virtualItems.map((virtualItem) => {
-                const card = cards[virtualItem.index]
-                return (
-                  <div
-                    key={virtualItem.key}
-                    style={{
-                      position: 'absolute',
-                      top: 0,
-                      left: 0,
-                      width: 'calc(100% / 6 - 0.8rem)', // 6 colonnes
-                      transform: `translateY(${virtualItem.start}px)`,
-                    }}
-                  >
-                    <CardTile card={card} />
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-        ) : (
-          <div style={{
-            textAlign: 'center',
-            padding: '3rem',
-            color: '#a0a0b0',
-            background: '#16213e',
-            borderRadius: '12px',
-            border: '1px solid #404050',
-          }}>
-            {isLoading ? (
-              <>
-                <p style={{ fontSize: '1.2rem' }}>Chargement...</p>
-              </>
-            ) : (
-              <>
-                <p style={{ fontSize: '1.2rem' }}>🔍 Aucune carte trouvée</p>
-                <p style={{ fontSize: '0.9rem', marginTop: '0.5rem' }}>
-                  Essaie une autre recherche
-                </p>
-              </>
-            )}
+            <p style={{ fontSize: '1.2rem' }}>Chargement des cartes...</p>
           </div>
         )}
 
-        {/* LOADING INDICATOR - Infinite Scroll */}
-        {isLoading && cards.length > 0 && (
-          <div style={{
-            textAlign: 'center',
-            padding: '2rem',
-            color: '#a0a0b0',
-          }}>
-            <p>Chargement des prochaines cartes...</p>
+        {/* GALLERY VIRTUALIZED */}
+        {!isLoading && allCards.length > 0 && (
+          <>
+            <div
+              ref={parentRef}
+              style={{
+                height: 'calc(100vh - 450px)',
+                overflow: 'auto',
+                border: '1px solid #404050',
+                borderRadius: '12px',
+                background: '#16213e',
+                position: 'relative',
+              }}
+            >
+              {/* Virtualizer container */}
+              <div
+                style={{
+                  height: `${totalSize}px`,
+                  width: '100%',
+                  position: 'relative',
+                }}
+              >
+                {/* Grid display */}
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))',
+                    gap: '1rem',
+                    padding: '1rem',
+                  }}
+                >
+                  {virtualItems.map((virtualItem) => {
+                    const card = filteredCards[virtualItem.index]
+                    return (
+                      <div
+                        key={card.id} // ✅ CLEF UNIQUE PAR CARTE
+                        style={{
+                          transform: `translateY(${virtualItem.start}px)`,
+                        }}
+                      >
+                        <CardTile card={card} />
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {/* Empty search result */}
+            {filteredCards.length === 0 && (
+              <div
+                style={{
+                  textAlign: 'center',
+                  padding: '2rem',
+                  color: '#a0a0b0',
+                  marginTop: '1rem',
+                }}
+              >
+                <p>🔍 Aucune carte trouvée pour "{searchQuery}"</p>
+              </div>
+            )}
+          </>
+        )}
+
+        {/* No cards at all */}
+        {!isLoading && allCards.length === 0 && !error && (
+          <div
+            style={{
+              textAlign: 'center',
+              padding: '3rem',
+              color: '#a0a0b0',
+              background: '#16213e',
+              borderRadius: '12px',
+              border: '1px solid #404050',
+            }}
+          >
+            <p style={{ fontSize: '1.2rem' }}>❌ Aucune carte disponible</p>
           </div>
         )}
       </div>
@@ -344,15 +314,16 @@ export default function CardsGalleryPage() {
 }
 
 /**
- * Composante: UNE CARTE dans la galerie
- * 
- * Avec lazy loading d'image
+ * Composant: UNE CARTE
+ * - Lazy load image
+ * - Hover effect
  */
 function CardTile({ card }: { card: Card }) {
+  const [isVisible, setIsVisible] = useState(false)
   const [imageError, setImageError] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
-  const [isVisible, setIsVisible] = useState(false)
 
+  // Lazy load image quand la carte devient visible
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => {
@@ -385,15 +356,17 @@ function CardTile({ card }: { card: Card }) {
         justifyContent: 'center',
         position: 'relative',
         cursor: 'pointer',
-        transition: 'transform 0.2s, border-color 0.2s',
+        transition: 'all 0.2s',
       }}
       onMouseEnter={(e) => {
-        (e.target as HTMLDivElement).style.transform = 'scale(1.05)'
-        ;(e.target as HTMLDivElement).style.borderColor = '#3b82f6'
+        const el = e.currentTarget as HTMLElement
+        el.style.transform = 'scale(1.05)'
+        el.style.borderColor = '#3b82f6'
       }}
       onMouseLeave={(e) => {
-        (e.target as HTMLDivElement).style.transform = 'scale(1)'
-        ;(e.target as HTMLDivElement).style.borderColor = '#404050'
+        const el = e.currentTarget as HTMLElement
+        el.style.transform = 'scale(1)'
+        el.style.borderColor = '#404050'
       }}
     >
       {!isVisible || !card.imageUrl ? (
@@ -407,12 +380,14 @@ function CardTile({ card }: { card: Card }) {
           }}
         />
       ) : imageError ? (
-        <div style={{
-          color: '#a0a0b0',
-          textAlign: 'center',
-          padding: '1rem',
-          fontSize: '0.75rem',
-        }}>
+        <div
+          style={{
+            color: '#a0a0b0',
+            textAlign: 'center',
+            padding: '1rem',
+            fontSize: '0.75rem',
+          }}
+        >
           📷 Non trouvée
         </div>
       ) : (
@@ -428,20 +403,21 @@ function CardTile({ card }: { card: Card }) {
         />
       )}
 
-      {/* NOM CARTE AU HOVER */}
+      {/* Card name overlay */}
       <div
         style={{
           position: 'absolute',
           bottom: 0,
           left: 0,
           right: 0,
-          background: 'linear-gradient(to top, rgba(0,0,0,0.8), transparent)',
-          padding: '0.75rem',
-          color: '#ffffff',
-          fontSize: '0.75rem',
+          background: 'linear-gradient(to top, rgba(0,0,0,0.9), transparent)',
+          padding: '0.5rem',
+          color: '#fff',
+          fontSize: '0.7rem',
           fontWeight: '600',
-          maxHeight: '60px',
+          maxHeight: '50%',
           overflow: 'hidden',
+          textOverflow: 'ellipsis',
         }}
       >
         {card.name}
