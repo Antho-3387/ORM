@@ -129,7 +129,17 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('API error:', error)
     return NextResponse.json(
-      { success: false, error: 'Erreur serveur' },
+      { 
+        success: false, 
+        error: 'Erreur serveur',
+        data: [],
+        pagination: {
+          page: 1,
+          limit: 20,
+          total: 0,
+          pages: 0,
+        }
+      },
       { status: 500 }
     )
   }

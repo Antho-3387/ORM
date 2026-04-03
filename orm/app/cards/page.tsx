@@ -97,12 +97,22 @@ export default function CardsGalleryPage() {
       })
 
       const response = await fetch(`/api/cards/search?${params}`)
-      const data: ApiResponse = await response.json()
+      const data: any = await response.json()
 
-      if (!data.success) {
-        setError('Erreur lors de la recherche')
+      // Vérifier si la réponse est valide et a les champs requis
+      if (!data || typeof data !== 'object') {
+        setError('Réponse invalide du serveur')
         return
       }
+
+      if (!data.success) {
+        setError(data.error || 'Erreur lors de la recherche')
+        return
+      }
+
+      // S'assurer que les données existent et que pagination est présente
+      const cardsData = Array.isArray(data.data) ? data.data : []
+      const paginationData = data.pagination || { page, limit: 50, total: 0, pages: 0 }
 
       // ============================================================
       // INFINITE SCROLL: Ajouter les cartes (pas remplacer)
@@ -110,15 +120,15 @@ export default function CardsGalleryPage() {
       
       if (page === 1) {
         // Première page: remplacer
-        setCards(data.data)
+        setCards(cardsData)
       } else {
         // Pages suivantes: ajouter à la fin
-        setCards(prev => [...prev, ...data.data])
+        setCards(prev => [...prev, ...cardsData])
       }
 
       setCurrentPage(page)
-      setTotalPages(data.pagination.pages)
-      setHasMore(page < data.pagination.pages)
+      setTotalPages(paginationData.pages || 0)
+      setHasMore(page < (paginationData.pages || 0))
     } catch (err) {
       console.error('Error loading cards:', err)
       setError('Erreur réseau')
