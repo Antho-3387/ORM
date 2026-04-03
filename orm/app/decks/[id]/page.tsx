@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { use, useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/lib/auth-context'
-import { CardGallery } from '@/app/components/CardGallery'
+import { DeckCardLoader } from '@/app/components/DeckCardLoader'
 
 interface Deck {
   id: string
@@ -133,9 +133,9 @@ export default function DeckDetailsPage({ params }: DeckDetailsPageProps) {
           )}
         </div>
 
-        {/* Card Gallery */}
+        {/* Card Gallery - Virtualisé et optimisé */}
         <div style={{ background: '#16213e', border: '1px solid #404050', borderRadius: '12px', padding: '2rem', marginBottom: '2rem' }}>
-          <CardGallery deckList={deck.list} />
+          <DeckCardLoader deckList={deck.list} />
         </div>
       </div>
     </main>
