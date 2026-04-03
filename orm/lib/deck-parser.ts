@@ -103,4 +103,5 @@ async function fetchAllCardImages(cards: CardInfo[]): Promise<CardInfo[]> {
   return updated
 }
 
-export { parseDecklist, fetchAllCardImages, fetchCardImageWithCache, CardInfo }
+export { parseDecklist, fetchAllCardImages, fetchCardImageWithCache }
+export type { CardInfo }
