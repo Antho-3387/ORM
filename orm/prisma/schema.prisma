@@ -42,7 +42,18 @@ model Card {
   type            String
   imageUrl        String?
   
+  // Cache metadata
+  cachedAt        DateTime   @default(now())   // Timestamp de mise en cache
+  searchCount     Int        @default(1)       // Nombre de fois cherchée
+  lastSearchedAt  DateTime   @default(now())   // Dernière recherche
+  source          String     @default("scryfall") // Source des données
+  
   deckCards       DeckCard[]
+  
+  // Indices pour accélérer les recherches
+  @@index([name])
+  @@index([scryfallId])
+  @@index([lastSearchedAt])
 }
 
 model DeckCard {
