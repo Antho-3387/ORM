@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS public."Deck" (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
   description TEXT,
+  list TEXT,
   "userId" TEXT NOT NULL REFERENCES public."User"(id) ON DELETE CASCADE,
   "createdAt" TIMESTAMP DEFAULT NOW(),
   "updatedAt" TIMESTAMP DEFAULT NOW()
