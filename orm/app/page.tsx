@@ -2,6 +2,8 @@
 
 import Link from 'next/link'
 import React from 'react'
+import { supabase } from '@/lib/supabase'
+import { useAuth } from '@/lib/auth-context'
 
 export default function Home() {
   return (
@@ -46,7 +48,7 @@ export default function Home() {
         <p>
           Cliquez sur le bouton "Créer un Deck" pour démarrer. 
           Vous pouvez ensuite coller votre decklist au format Commander 
-          et la sauvegarder localement.
+          et la sauvegarder.
         </p>
       </div>
     </main>
@@ -55,42 +57,74 @@ export default function Home() {
 
 function DecksPreview() {
   const [decks, setDecks] = React.useState<any[]>([])
-  const [mounted, setMounted] = React.useState(false)
+  const [loading, setLoading] = React.useState(true)
+  const [error, setError] = React.useState('')
+  const { user } = useAuth()
 
   React.useEffect(() => {
-    setMounted(true)
-    const loadDecks = () => {
-      try {
-        if (typeof window === 'undefined') return
-        const allItems = { ...localStorage }
-        const savedDecks: any[] = []
-
-        for (const key in allItems) {
-          if (key.startsWith('deck_')) {
-            const deckData = JSON.parse(allItems[key])
-            savedDecks.push(deckData)
-          }
-        }
-
-        savedDecks.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-        setDecks(savedDecks.slice(0, 3))
-      } catch (error) {
-        console.error('Error loading decks:', error)
-        setDecks([])
-      }
+    if (user) {
+      loadDecks()
+    } else {
+      setLoading(false)
     }
+  }, [user])
 
-    loadDecks()
-  }, [])
+  const loadDecks = async () => {
+    try {
+      setLoading(true)
+      setError('')
+
+      // Récupérer les 3 derniers decks de l'utilisateur
+      const { data, error: dbError } = await supabase
+        .from('Deck')
+        .select('id,name,list,userId,createdAt')
+        .eq('userId', user?.id)
+        .order('createdAt', { ascending: false })
+        .limit(3)
+
+      if (dbError) {
+        console.error('Error loading decks:', dbError)
+        setError('Erreur lors du chargement des decks')
+        return
+      }
+
+      setDecks(data || [])
+    } catch (err: any) {
+      console.error('Error:', err)
+      setError('Une erreur est survenue')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const countCards = (list: string) => {
+    if (!list) return 0
     return list.split('\n').filter(line => line.trim() && /^\d+\s+/.test(line.trim())).length
   }
 
-  if (!mounted) {
+  if (loading) {
     return (
       <p style={{ color: '#a0a0b0' }}>
         Chargement...
+      </p>
+    )
+  }
+
+  if (!user) {
+    return (
+      <p style={{ color: '#a0a0b0' }}>
+        Connectez-vous pour voir vos decks!{' '}
+        <Link href="/auth" style={{ color: '#3b82f6', textDecoration: 'underline' }}>
+          Se connecter
+        </Link>
+      </p>
+    )
+  }
+
+  if (error) {
+    return (
+      <p style={{ color: '#ff6b6b' }}>
+        {error}
       </p>
     )
   }
@@ -126,7 +160,7 @@ function DecksPreview() {
               {countCards(deck.list)} cartes
             </p>
           </div>
-          <Link href="/decks">
+          <Link href={`/decks/${deck.id}`}>
             <button style={{ background: '#3b82f6' }}>Voir</button>
           </Link>
         </div>
