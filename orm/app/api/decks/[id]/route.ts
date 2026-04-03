@@ -48,7 +48,7 @@ export async function PUT(
   try {
     const { id } = await params
     const userId = request.headers.get('x-user-id')
-    const { name, description } = await request.json()
+    const { name, description, list } = await request.json()
 
     const deck = await prisma.deck.findUnique({
       where: { id },
@@ -66,6 +66,7 @@ export async function PUT(
       data: {
         ...(name && { name }),
         ...(description !== undefined && { description }),
+        ...(list !== undefined && { list }),
       },
       include: {
         cards: {

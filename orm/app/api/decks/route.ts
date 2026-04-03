@@ -44,7 +44,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const { name, description, userId } = body
+    const { name, description, userId, list } = body
 
     if (!name || !userId) {
       return NextResponse.json(
@@ -55,9 +55,9 @@ export async function POST(req: NextRequest) {
 
     const { data, error } = await supabase
       .from('Deck')
-      .insert([{ name, description, userId }])
+      .insert([{ name, description, userId, list }])
       .select()
-      .single()
+      .maybeSingle()
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 })
