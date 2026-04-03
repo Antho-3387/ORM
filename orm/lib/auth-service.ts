@@ -41,7 +41,7 @@ export async function signUp(email: string, password: string, name?: string): Pr
         .insert([
           {
             id: authData.user.id,
-            email: authData.user.email,
+            email: authData.user.email || email,
             password: '',
             name: name || email.split('@')[0],
           },
@@ -56,7 +56,7 @@ export async function signUp(email: string, password: string, name?: string): Pr
           return {
             user: {
               id: authData.user.id,
-              email: authData.user.email,
+              email: authData.user.email || email,
               name: name || email.split('@')[0],
             },
             error: null,
@@ -104,7 +104,7 @@ export async function signIn(email: string, password: string): Promise<AuthRespo
           .insert([
             {
               id: data.user.id,
-              email: data.user.email,
+              email: data.user.email || email,
               password: '',
               name: email.split('@')[0],
             },
@@ -136,7 +136,7 @@ export async function signIn(email: string, password: string): Promise<AuthRespo
         return {
           user: {
             id: data.user.id,
-            email: data.user.email,
+            email: data.user.email || email,
             name: email.split('@')[0],
           },
           error: null,
