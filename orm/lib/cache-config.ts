@@ -4,8 +4,6 @@
  * Centralise tous les paramètres et configurations
  */
 
-import prisma from '@/lib/prisma'
-
 // ================================================================
 // CONFIGURATION
 // ================================================================
@@ -17,10 +15,6 @@ export const CACHE_CONFIG = {
     MEMORY: {
       duration: 30 * 60 * 1000, // 30 minutes
       description: 'Cache en-mémoire React pendant la session'
-    },
-    LOCALSTORAGE: {
-      duration: 24 * 60 * 60 * 1000, // 24 heures
-      description: 'Cache persistant frontend'
     },
     // Backend
     DATABASE: {
@@ -109,7 +103,6 @@ export const ENV = {
 
   // Optional (avec defaults)
   CACHE_TTL_MEMORY: parseInt(process.env.CACHE_TTL_MEMORY || '1800000'),
-  CACHE_TTL_LOCALSTORAGE: parseInt(process.env.CACHE_TTL_LOCALSTORAGE || '86400000'),
   CACHE_CLEANUP_ENABLED: process.env.CACHE_CLEANUP_ENABLED !== 'false',
   CACHE_MONITORING_ENABLED: process.env.CACHE_MONITORING_ENABLED !== 'false',
   SCRYFALL_API_BASE: process.env.SCRYFALL_API_BASE || 'https://api.scryfall.com',
@@ -135,10 +128,6 @@ export function validateConfig(): { valid: boolean; errors: string[] } {
 
   if (CACHE_CONFIG.LIMITS.SEARCH_RESULTS > 1000) {
     errors.push('SEARCH_RESULTS ne doit pas dépasser 1000')
-  }
-
-  if (CACHE_CONFIG.TTL.MEMORY.duration > CACHE_CONFIG.TTL.LOCALSTORAGE.duration) {
-    errors.push('TTL MEMORY ne doit pas dépasser TTL LOCALSTORAGE')
   }
 
   return {

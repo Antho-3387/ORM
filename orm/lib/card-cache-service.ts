@@ -9,7 +9,7 @@
  * Objectif : <200ms pour cache hit, enrichissement automatique
  */
 
-import prisma from './prisma'
+import { supabase } from './supabase'
 import { searchCards, getCardById, ScryfallCard } from './scryfall'
 
 // Cache en-mémoire (backend) - TTL 30 minutes
@@ -80,44 +80,47 @@ export async function searchCardWithCache(
  * ✅ RECHERCHE PAR ID SCRYFALL
  */
 export async function getCardByIdWithCache(scryfallId: string) {
-  // Vérifier la base de données
-  const existingCard = await prisma.card.findUnique({
-    where: { scryfallId },
-  })
+  try {
+    // Vérifier la base de données
+    const { data: existingCard, error } = await supabase
+      .from('Card')
+      .select('*')
+      .eq('scryfallId', scryfallId)
+      .single()
 
-  if (existingCard) {
-    console.log(`✅ [CACHE HIT] Card by ID: ${scryfallId}`)
-    updateCardStats(existingCard.id).catch(console.error)
-    return existingCard
+    if (error && error.code !== 'PGRST116') {
+      throw error
+    }
+
+    if (existingCard) {
+      console.log(`✅ [CACHE HIT] Card by ID: ${scryfallId}`)
+      updateCardStats(existingCard.id).catch(console.error)
+      return existingCard
+    }
+
+    // Appel Scryfall si inexistant
+    console.log(`❌ [CACHE MISS] Fetching from Scryfall: ${scryfallId}`)
+    const scryfallCard = await getCardById(scryfallId)
+    
+    if (!scryfallCard) {
+      throw new Error(`Card not found on Scryfall: ${scryfallId}`)
+    }
+
+    return saveCacheCard(scryfallCard)
+  } catch (error) {
+    console.error('Error in getCardByIdWithCache:', error)
+    throw error
   }
-
-  // Appel Scryfall si inexistant
-  console.log(`❌ [CACHE MISS] Fetching from Scryfall: ${scryfallId}`)
-  const scryfallCard = await getCardById(scryfallId)
-  
-  if (!scryfallCard) {
-    throw new Error(`Card not found on Scryfall: ${scryfallId}`)
-  }
-
-  return saveCacheCard(scryfallCard)
 }
 
 /**
- * 💾 SAUVEGARDE DANS LE CACHE PERSISTANT (Prisma/Supabase)
+ * 💾 SAUVEGARDE DANS LE CACHE PERSISTANT (Supabase)
  */
 async function saveCacheCard(scryfallCard: ScryfallCard) {
   try {
-    const card = await prisma.card.upsert({
-      where: { scryfallId: scryfallCard.id },
-      update: {
-        // Mise à jour seulement si l'image a changé
-        imageUrl: scryfallCard.image_uris?.normal,
-        lastSearchedAt: new Date(),
-        searchCount: {
-          increment: 1,
-        },
-      },
-      create: {
+    const { data: card, error } = await supabase
+      .from('Card')
+      .upsert({
         scryfallId: scryfallCard.id,
         name: scryfallCard.name,
         manaValue: scryfallCard.mana_value,
@@ -126,8 +129,13 @@ async function saveCacheCard(scryfallCard: ScryfallCard) {
         imageUrl: scryfallCard.image_uris?.normal,
         source: 'scryfall',
         searchCount: 1,
-      },
-    })
+      })
+      .select()
+      .single()
+
+    if (error) {
+      throw error
+    }
 
     console.log(`💾 [SAVED TO DB] ${scryfallCard.name}`)
     return card
@@ -142,18 +150,23 @@ async function saveCacheCard(scryfallCard: ScryfallCard) {
  */
 async function getCardFromDatabase(query: string) {
   try {
-    // Recherche par nom exact ou partielle
-    const card = await prisma.card.findFirst({
-      where: {
-        OR: [
-          { name: { equals: query, mode: 'insensitive' } },
-          { name: { contains: query, mode: 'insensitive' } },
-        ],
-      },
-      orderBy: {
-        searchCount: 'desc', // Prioriser les cartes populaires
-      },
-    })
+    // Recherche par nom exact ou partielle (Supabase FTS ou ilike)
+    const { data: card, error } = await supabase
+      .from('Card')
+      .select('*')
+      .or(`name.ilike.%${query}%,name.eq.${query}`)
+      .order('searchCount', { ascending: false })
+      .limit(1)
+      .single()
+
+    if (error && error.code === 'PGRST116') {
+      // Aucun résultat trouvé
+      return null
+    }
+
+    if (error) {
+      throw error
+    }
 
     return card || null
   } catch (error) {
@@ -191,17 +204,19 @@ function setInMemoryCache(key: string, data: any) {
  */
 async function updateCardStats(cardId: string) {
   try {
-    await prisma.card.update({
-      where: { id: cardId },
-      data: {
-        lastSearchedAt: new Date(),
-        searchCount: {
-          increment: 1,
-        },
-      },
-    })
+    const { error } = await supabase
+      .from('Card')
+      .update({
+        lastSearchedAt: new Date().toISOString(),
+        searchCount: { increment: 1 },
+      })
+      .eq('id', cardId)
+
+    if (error) {
+      console.error('Error updating card stats:', error)
+    }
   } catch (error) {
-    console.error('Error updating card stats:', error)
+    console.error('Unexpected error in updateCardStats:', error)
   }
 }
 
@@ -213,19 +228,19 @@ export async function cleanupOldCache(daysThreshold: number = 30) {
     const cutoffDate = new Date()
     cutoffDate.setDate(cutoffDate.getDate() - daysThreshold)
 
-    const result = await prisma.card.deleteMany({
-      where: {
-        lastSearchedAt: {
-          lt: cutoffDate,
-        },
-        searchCount: {
-          lt: 2, // Garder les cartes populaires
-        },
-      },
-    })
+    const { data: deletedCards, error } = await supabase
+      .from('Card')
+      .delete()
+      .lt('lastSearchedAt', cutoffDate.toISOString())
+      .lt('searchCount', 2)
+      .select('id')
 
-    console.log(`🧹 [CLEANUP] ${result.count} cartes supprimées`)
-    return result
+    if (error) {
+      throw error
+    }
+
+    console.log(`🧹 [CLEANUP] ${deletedCards?.length || 0} cartes supprimées`)
+    return { count: deletedCards?.length || 0 }
   } catch (error) {
     console.error('Cleanup error:', error)
     throw error
@@ -236,25 +251,145 @@ export async function cleanupOldCache(daysThreshold: number = 30) {
  * 📈 STATISTIQUES DE CACHE
  */
 export async function getCacheStats() {
-  const total = await prisma.card.count()
-  const popular = await prisma.card.findMany({
-    take: 5,
-    orderBy: { searchCount: 'desc' },
-    select: { name: true, searchCount: true, cachedAt: true },
-  })
+  try {
+    const { count: total, error: countError } = await supabase
+      .from('Card')
+      .select('id', { count: 'exact' })
 
-  const memoryUsage = IN_MEMORY_CACHE.size
+    if (countError) {
+      throw countError
+    }
 
-  return {
-    totalCachedCards: total,
-    inMemoryCache: memoryUsage,
-    mostPopular: popular,
-    dbSize: `~${(total * 0.5).toFixed(0)}KB`, // Estimation
+    const { data: popular, error: popularError } = await supabase
+      .from('Card')
+      .select('name, searchCount, cachedAt')
+      .order('searchCount', { ascending: false })
+      .limit(5)
+
+    if (popularError) {
+      throw popularError
+    }
+
+    const memoryUsage = IN_MEMORY_CACHE.size
+
+    return {
+      totalCachedCards: total || 0,
+      inMemoryCache: memoryUsage,
+      mostPopular: popular || [],
+      dbSize: `~${((total || 0) * 0.5).toFixed(0)}KB`, // Estimation
+    }
+  } catch (error) {
+    console.error('Error getting cache stats:', error)
+    throw error
   }
 }
 
 /**
- * 🔄 FORCER UNE ACTUALISATION MANUELLE
+ * � RECHERCHE AVANCÉE (avec filtres)
+ */
+export async function searchCardsAdvanced(filters: {
+  name?: string
+  type?: string
+  manaValue?: number
+  colors?: string[]
+  minSearchCount?: number
+}) {
+  try {
+    let query = supabase.from('Card').select('*')
+
+    if (filters.name) {
+      query = query.ilike('name', `%${filters.name}%`)
+    }
+
+    if (filters.type) {
+      query = query.ilike('type', `%${filters.type}%`)
+    }
+
+    if (filters.manaValue !== undefined) {
+      query = query.eq('manaValue', filters.manaValue)
+    }
+
+    if (filters.minSearchCount) {
+      query = query.gte('searchCount', filters.minSearchCount)
+    }
+
+    query = query.order('searchCount', { ascending: false }).limit(50)
+
+    const { data: cards, error } = await query
+
+    if (error) {
+      throw error
+    }
+
+    return cards || []
+  } catch (error) {
+    console.error('Error in searchCardsAdvanced:', error)
+    throw error
+  }
+}
+
+/**
+ * 📦 BATCH - Sauvegarder plusieurs cartes
+ */
+export async function saveMultipleCards(scryfallCards: ScryfallCard[]) {
+  try {
+    const cardsToInsert = scryfallCards.map(card => ({
+      scryfallId: card.id,
+      name: card.name,
+      manaValue: card.mana_value,
+      colors: JSON.stringify(card.colors || []),
+      type: card.type_line,
+      imageUrl: card.image_uris?.normal,
+      source: 'scryfall',
+      searchCount: 1,
+    }))
+
+    const { data: cards, error } = await supabase
+      .from('Card')
+      .upsert(cardsToInsert)
+      .select()
+
+    if (error) {
+      throw error
+    }
+
+    console.log(`💾 [BATCH SAVED] ${cards?.length || 0} cards`)
+    return cards || []
+  } catch (error) {
+    console.error('Error saving multiple cards:', error)
+    throw error
+  }
+}
+
+/**
+ * ✨ PRÉCHARGER LES CARTES POPULAIRES
+ */
+export async function preloadPopularCards() {
+  try {
+    const { data: topCards, error } = await supabase
+      .from('Card')
+      .select('*')
+      .order('searchCount', { ascending: false })
+      .limit(20)
+
+    if (error) {
+      throw error
+    }
+
+    topCards?.forEach(card => {
+      setInMemoryCache(card.name.toLowerCase(), card)
+    })
+
+    console.log(`⭐ Preloaded ${topCards?.length || 0} popular cards`)
+    return topCards || []
+  } catch (error) {
+    console.error('Error preloading cards:', error)
+    throw error
+  }
+}
+
+/**
+ * �🔄 FORCER UNE ACTUALISATION MANUELLE
  */
 export async function refreshCardCache(scryfallId: string) {
   console.log(`🔄 [REFRESH] ${scryfallId}`)

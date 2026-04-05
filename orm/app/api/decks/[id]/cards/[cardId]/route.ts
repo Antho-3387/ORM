@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import prisma from '@/lib/prisma'
+import { supabase } from '@/lib/supabase'
 
 /**
  * DELETE /api/decks/[id]/cards/[cardId] - Supprime une carte du deck
@@ -12,9 +12,22 @@ export async function DELETE(
     const { id, cardId } = await params
     const userId = request.headers.get('x-user-id')
 
-    const deck = await prisma.deck.findUnique({
-      where: { id },
-    })
+    const { data: deck, error: deckError } = await supabase
+      .from('Deck')
+      .select('*')
+      .eq('id', id)
+      .single()
+
+    if (deckError && deckError.code === 'PGRST116') {
+      return NextResponse.json(
+        { error: 'Deck non trouvé' },
+        { status: 404 }
+      )
+    }
+
+    if (deckError) {
+      throw deckError
+    }
 
     if (!deck || deck.userId !== userId) {
       return NextResponse.json(
@@ -23,14 +36,15 @@ export async function DELETE(
       )
     }
 
-    await prisma.deckCard.delete({
-      where: {
-        deckId_cardId: {
-          deckId: id,
-          cardId,
-        },
-      },
-    })
+    const { error: deleteError } = await supabase
+      .from('DeckCard')
+      .delete()
+      .eq('deckId', id)
+      .eq('cardId', cardId)
+
+    if (deleteError) {
+      throw deleteError
+    }
 
     return NextResponse.json({ success: true })
   } catch (error) {

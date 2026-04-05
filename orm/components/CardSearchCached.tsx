@@ -43,10 +43,6 @@ export function CardSearchCached() {
         bg: '🚀 EN-MÉMOIRE',
         color: 'bg-green-100 text-green-800',
       },
-      localstorage: {
-        bg: '💾 LOCALSTORAGE',
-        color: 'bg-blue-100 text-blue-800',
-      },
       api: {
         bg: '🔽 API',
         color: 'bg-yellow-100 text-yellow-800',
@@ -106,7 +102,7 @@ export function CardSearchCached() {
             </span>
           </div>
           <div className="text-xs text-gray-600">
-            💾 Mém: {stats.inMemory} | 🗄️ LS: {stats.inLocalStorage} | 📊 {stats.estimatedSize}
+            💾 Mém: {stats.inMemory}
           </div>
         </div>
       )}
@@ -196,10 +192,7 @@ function CacheExplanation() {
           <strong>🚀 EN-MÉMOIRE (&lt;1ms):</strong> Cache JavaScript pendant la session. Ultra-rapide.
         </li>
         <li>
-          <strong>💾 LOCALSTORAGE (&lt;10ms):</strong> Persiste 24h, survit aux rafraîchissements.
-        </li>
-        <li>
-          <strong>🔽 API (&lt;50ms):</strong> Appel backend, vérification BDD Supabase.
+          <strong> API (&lt;50ms):</strong> Appel backend, vérification BDD Supabase.
         </li>
         <li>
           <strong>📊 BACKEND:</strong> Si pas trouvée en DB → appel Scryfall → sauvegarde auto.

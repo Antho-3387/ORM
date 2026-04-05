@@ -1,47 +1,154 @@
-import bcrypt from 'bcryptjs'
-import prisma from './prisma'
+import { supabase } from './supabase'
 
-export async function hashPassword(password: string): Promise<string> {
-  const salt = await bcrypt.genSalt(10)
-  return bcrypt.hash(password, salt)
-}
-
-export async function verifyPassword(password: string, hash: string): Promise<boolean> {
-  return bcrypt.compare(password, hash)
-}
-
+/**
+ * Crée un nouvel utilisateur
+ *
+ * Architecture:
+ * - Supabase Auth = authentification + JWT + hachage mot de passe
+ * - Table "User" = profil utilisateur SANS password
+ * - Séparation complète entre auth et profil
+ */
 export async function createUser(email: string, password: string, name: string) {
-  const hashedPassword = await hashPassword(password)
-
-  const user = await prisma.user.create({
-    data: {
+  try {
+    // 1. Créer l'utilisateur dans Supabase Auth
+    const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
-      password: hashedPassword,
+      password,
+    })
+
+    if (authError) {
+      throw new Error(authError.message || 'Erreur lors de la création de l\'utilisateur')
+    }
+
+    if (!authData.user) {
+      throw new Error('Réponse Auth invalide: aucun utilisateur créé')
+    }
+
+    const userId = authData.user.id
+
+    // 2. Créer le profil utilisateur dans la table "User" (SANS password)
+    const { data: profileData, error: profileError } = await supabase
+      .from('User')
+      .insert([
+        {
+          id: userId,
+          email,
+          name: name || null,
+          // Password est géré UNIQUEMENT par Supabase Auth
+        },
+      ])
+      .select()
+      .single()
+
+    if (profileError) {
+      console.error('Erreur création profil utilisateur:', profileError)
+      throw profileError
+    }
+
+    return {
+      id: userId,
+      email,
       name,
-    },
-  })
-
-  return user
+    }
+  } catch (error) {
+    console.error('Erreur createUser:', error)
+    throw error
+  }
 }
 
+/**
+ * Récupère un utilisateur par email (depuis la table "User")
+ * Retourne null si l'utilisateur n'existe pas
+ */
 export async function getUserByEmail(email: string) {
-  return prisma.user.findUnique({
-    where: { email },
-  })
+  try {
+    const { data, error } = await supabase
+      .from('User')
+      .select('id, email, name, createdAt, updatedAt')
+      .eq('email', email)
+      .single()
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        // Aucun utilisateur trouvé - pas une erreur
+        return null
+      }
+      throw error
+    }
+
+    return data
+  } catch (error) {
+    console.error('Erreur getUserByEmail:', error)
+    return null
+  }
 }
 
+/**
+ * Vérifie les identifiants de l'utilisateur
+ * Utilise Supabase Auth pour la vérification sécurisée du mot de passe
+ * Retourne null si l'authentification échoue
+ */
 export async function verifyUserCredentials(email: string, password: string) {
-  const user = await getUserByEmail(email)
+  try {
+    // Utiliser signInWithPassword de Supabase Auth
+    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    })
 
-  if (!user) {
+    if (authError) {
+      console.warn('Authentification échouée pour:', email)
+      return null
+    }
+
+    if (!authData.user) {
+      console.warn('Réponse Auth invalide')
+      return null
+    }
+
+    // Récupérer les données du profil utilisateur
+    const userProfile = await getUserByEmail(email)
+
+    if (!userProfile) {
+      console.warn('Profil utilisateur non trouvé pour:', email)
+      return null
+    }
+
+    return {
+      id: authData.user.id,
+      email: userProfile.email,
+      name: userProfile.name,
+    }
+  } catch (error) {
+    console.error('Erreur verifyUserCredentials:', error)
     return null
   }
+}
 
-  const passwordMatch = await verifyPassword(password, user.password)
+/**
+ * Déconnexion sécurisée
+ */
+export async function logoutUser() {
+  try {
+    const { error } = await supabase.auth.signOut()
+    if (error) throw error
+  } catch (error) {
+    console.error('Erreur logout:', error)
+    throw error
+  }
+}
 
-  if (!passwordMatch) {
+/**
+ * Obtenir la session actuelle
+ */
+export async function getCurrentSession() {
+  try {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession()
+    return session
+  } catch (error) {
+    console.error('Erreur getCurrentSession:', error)
     return null
   }
-
-  return user
 }

@@ -4,8 +4,7 @@
  * Suivi des performances et des métriques du système de cache
  */
 
-import { NextRequest, NextResponse } from 'next/server'
-import prisma from '@/lib/prisma'
+import { supabase } from '@/lib/supabase'
 
 export interface CacheMetrics {
   timestamp: Date
@@ -32,40 +31,62 @@ export interface CacheAnalytics {
  * 📊 Collecter les métriques du cache
  */
 export async function collectCacheMetrics(): Promise<CacheMetrics> {
-  const cards = await prisma.card.findMany({
-    select: {
-      searchCount: true,
-      lastSearchedAt: true,
-    },
-  })
+  try {
+    const { data: cards, error } = await supabase
+      .from('Card')
+      .select('searchCount, lastSearchedAt')
 
-  const totalCards = cards.length
-  const totalSearches = cards.reduce((sum, c) => sum + c.searchCount, 0)
-  const searchCounts = cards.map(c => c.searchCount)
+    if (error) {
+      throw error
+    }
+
+    if (!cards || cards.length === 0) {
+      return {
+        timestamp: new Date(),
+        totalCards: 0,
+        avgSearchCount: 0,
+        maxSearchCount: 0,
+        totalSearches: 0,
+        cacheHitRate: 0,
+        activeLast7Days: 0,
+        dbSize: '0KB',
+      }
+    }
+
+    const totalCards = cards.length
+    const totalSearches = cards.reduce((sum, c) => sum + (c.searchCount || 0), 0)
+    const searchCounts = cards.map(c => c.searchCount || 0)
 
   const avgSearchCount = totalSearches / totalCards || 0
   const maxSearchCount = Math.max(...searchCounts, 0)
 
-  const activeLast7Days = cards.filter(
-    c => new Date(c.lastSearchedAt).getTime() > Date.now() - 7 * 24 * 60 * 60 * 1000
-  ).length
+    const now = Date.now()
+    const sevenDaysAgo = now - 7 * 24 * 60 * 60 * 1000
+    
+    const activeLast7Days = cards.filter(
+      c => c.lastSearchedAt && new Date(c.lastSearchedAt).getTime() > sevenDaysAgo
+    ).length
 
-  // Estimer la taille (chaque carte ~300 bytes)
-  const dbSize = `~${(totalCards * 0.3).toFixed(1)}KB`
+    // Estimer la taille (chaque carte ~300 bytes)
+    const dbSize = `~${(totalCards * 0.3).toFixed(1)}KB`
 
-  // Simuler un cache hit rate (dans une vraie app, tracer les appels)
-  const cacheHitRate = totalCards > 0 ? (totalSearches / totalCards) * 10 : 0
-  const normalizedHitRate = Math.min(cacheHitRate, 100) // Cap à 100%
+    // Simuler un cache hit rate (dans une vraie app, tracer les appels)
+    const cacheHitRate = totalCards > 0 ? (totalSearches / totalCards) * 10 : 0
+    const normalizedHitRate = Math.min(cacheHitRate, 100) // Cap à 100%
 
-  return {
-    timestamp: new Date(),
-    totalCards,
-    avgSearchCount,
-    maxSearchCount,
-    totalSearches,
-    cacheHitRate: Math.round(normalizedHitRate),
-    activeLast7Days,
-    dbSize,
+    return {
+      timestamp: new Date(),
+      totalCards,
+      avgSearchCount,
+      maxSearchCount,
+      totalSearches,
+      cacheHitRate: Math.round(normalizedHitRate),
+      activeLast7Days,
+      dbSize,
+    }
+  } catch (error) {
+    console.error('Error collecting cache metrics:', error)
+    throw error
   }
 }
 
@@ -75,63 +96,70 @@ export async function collectCacheMetrics(): Promise<CacheMetrics> {
 export async function analyzeCacheTrends(
   period: 'day' | 'week' | 'month' = 'week'
 ): Promise<CacheAnalytics> {
-  const endDate = new Date()
-  const startDate = new Date()
+  try {
+    const endDate = new Date()
+    const startDate = new Date()
 
-  switch (period) {
-    case 'day':
-      startDate.setDate(startDate.getDate() - 1)
-      break
-    case 'week':
-      startDate.setDate(startDate.getDate() - 7)
-      break
-    case 'month':
-      startDate.setMonth(startDate.getMonth() - 1)
-      break
-  }
+    switch (period) {
+      case 'day':
+        startDate.setDate(startDate.getDate() - 1)
+        break
+      case 'week':
+        startDate.setDate(startDate.getDate() - 7)
+        break
+      case 'month':
+        startDate.setMonth(startDate.getMonth() - 1)
+        break
+    }
 
-  // Collecter les cartes cherchées pendant cette période
-  const cards = await prisma.card.findMany({
-    where: {
-      lastSearchedAt: {
-        gte: startDate,
-        lte: endDate,
+    // Collecter les cartes cherchées pendant cette période
+    const { data: cards, error } = await supabase
+      .from('Card')
+      .select('name, searchCount, lastSearchedAt')
+      .gte('lastSearchedAt', startDate.toISOString())
+      .lte('lastSearchedAt', endDate.toISOString())
+      .order('searchCount', { ascending: false })
+      .limit(100)
+
+    if (error) {
+      throw error
+    }
+
+    if (!cards || cards.length === 0) {
+      return {
+        period,
+        metrics: [],
+        trends: {
+          growth: 0,
+          hitRateImprovement: 0,
+          commonSearches: [],
+        },
+      }
+    }
+
+    // Collecter les metrics du début de la période
+    const currentMetrics = await collectCacheMetrics()
+
+    // Construire les données de tendance
+    const commonSearches = cards
+      .slice(0, 10)
+      .map(card => ({
+        query: card.name,
+        count: card.searchCount || 0,
+      }))
+
+    return {
+      period,
+      metrics: [currentMetrics],
+      trends: {
+        growth: 0, // À calculer avec des historiques
+        hitRateImprovement: 0, // À calculer avec des historiques
+        commonSearches,
       },
-    },
-    orderBy: { searchCount: 'desc' },
-    take: 1000,
-  })
-
-  const metrics = await collectCacheMetrics()
-
-  // Tendances
-  const totalCardsStart = await prisma.card.count({
-    where: {
-      cachedAt: { lte: startDate },
-    },
-  })
-
-  const totalCardsEnd = metrics.totalCards
-  const growthRate = totalCardsStart > 0 
-    ? ((totalCardsEnd - totalCardsStart) / totalCardsStart) * 100 
-    : 0
-
-  // Cartes les plus cherchées (CommonSearches)
-  const commonSearches = cards
-    .slice(0, 10)
-    .map(card => ({
-      query: card.name,
-      count: card.searchCount,
-    }))
-
-  return {
-    period,
-    metrics: [metrics],
-    trends: {
-      growth: Math.round(growthRate),
-      hitRateImprovement: metrics.cacheHitRate, // Simplification
-      commonSearches,
-    },
+    }
+  } catch (error) {
+    console.error('Error analyzing cache trends:', error)
+    throw error
   }
 }
 
@@ -144,100 +172,65 @@ export async function generateCacheHealthReport():Promise<{
   issues: string[]
   recommendations: string[]
 }> {
-  const metrics = await collectCacheMetrics()
-  const issues: string[] = []
-  const recommendations: string[] = []
-  let score = 100
+  try {
+    const metrics = await collectCacheMetrics()
+    const issues: string[] = []
+    const recommendations: string[] = []
+    let score = 100
 
-  // Vérifier les seuils
-  if (metrics.totalCards < 10) {
-    issues.push('Cache trop petit: less than 10 cards')
-    recommendations.push('Faire plus de recherches pour remplir le cache')
-    score -= 20
-  }
-
-  if (metrics.cacheHitRate < 30) {
-    issues.push('Cache hit rate too low')
-    recommendations.push('Attendre plus de recherches ou pré-charger les cartes populaires')
-    score -= 15
-  }
-
-  if (metrics.activeLast7Days < metrics.totalCards * 0.2) {
-    issues.push('Beaucoup de cartes inactives')
-    recommendations.push('Exécuter un cleanup pour supprimer les cartes non utilisées')
-    score -= 10
-  }
-
-  // Calculer l'âge moyen du cache
-  const allCards = await prisma.card.findMany({
-    select: { cachedAt: true },
-  })
-
-  if (allCards.length > 0) {
-    const now = Date.now()
-    const avgAge = allCards.reduce(
-      (sum, c) => sum + (now - new Date(c.cachedAt).getTime()),
-      0
-    ) / allCards.length
-
-    const avgAgeDays = avgAge / (24 * 60 * 60 * 1000)
-
-    if (avgAgeDays > 90) {
-      issues.push(`Cache average age: ${avgAgeDays.toFixed(0)} days`)
-      recommendations.push('Considérer un refresh complet depuis Scryfall')
-      score -= 5
+    // Vérifier les seuils
+    if (metrics.totalCards < 10) {
+      issues.push('Cache trop petit: less than 10 cards')
+      recommendations.push('Faire plus de recherches pour remplir le cache')
+      score -= 20
     }
-  }
 
-  const status = 
-    score >= 80 ? 'healthy' :
-    score >= 50 ? 'warning' :
-    'critical'
+    if (metrics.cacheHitRate < 30) {
+      issues.push('Cache hit rate too low')
+      recommendations.push('Attendre plus de recherches ou pré-charger les cartes populaires')
+      score -= 15
+    }
 
-  return {
-    status,
-    score: Math.max(0, score),
-    issues,
-    recommendations,
+    if (metrics.activeLast7Days < metrics.totalCards * 0.2) {
+      issues.push('Beaucoup de cartes inactives')
+      recommendations.push('Exécuter un cleanup pour supprimer les cartes non utilisées')
+      score -= 10
+    }
+
+    const status = 
+      score >= 80 ? 'healthy' :
+      score >= 50 ? 'warning' :
+      'critical'
+
+    return {
+      status,
+      score: Math.max(0, score),
+      issues,
+      recommendations,
+    }
+  } catch (error) {
+    console.error('Error generating cache health report:', error)
+    throw error
   }
 }
 
 /**
- * 🔌 API ENDPOINT: GET /api/cache/metrics
+ * � Exporter les métriques pour monitoring externe
  */
-export async function GET_METRICS(request: NextRequest) {
+export async function exportMetricsForMonitoring() {
   try {
-    const type = request.nextUrl.searchParams.get('type') || 'metrics'
+    const metrics = await collectCacheMetrics()
+    const trends = await analyzeCacheTrends('week')
 
-    let response
-
-    switch (type) {
-      case 'health':
-        response = await generateCacheHealthReport()
-        break
-
-      case 'analytics':
-        const period = (request.nextUrl.searchParams.get('period') || 'week') as 'day' | 'week' | 'month'
-        response = await analyzeCacheTrends(period)
-        break
-
-      case 'metrics':
-      default:
-        response = await collectCacheMetrics()
+    return {
+      metrics,
+      trends,
+      exportedAt: new Date().toISOString(),
+      version: '1.0',
     }
-
-    return NextResponse.json({
-      success: true,
-      type,
-      data: response,
-      timestamp: new Date().toISOString(),
-    })
-  } catch (error: any) {
-    console.error('Error fetching cache metrics:', error)
-    return NextResponse.json(
-      { error: error.message },
-      { status: 500 }
-    )
+  } catch (error) {
+    console.error('Error exporting metrics:', error)
+    throw error
   }
 }
 

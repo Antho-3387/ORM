@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { searchCards, searchCardsByColor, searchCardsByPower } from '@/lib/scryfall'
-import prisma from '@/lib/prisma'
+import { supabase } from '@/lib/supabase'
 
 /**
  * GET /api/cards/search - Recherche des cartes par nom
@@ -29,18 +29,21 @@ export async function GET(request: NextRequest) {
 
     // Sauvegarder les cartes trouvées dans la BD
     for (const scryfallCard of results) {
-      await prisma.card.upsert({
-        where: { scryfallId: scryfallCard.id },
-        update: {},
-        create: {
+      const { error } = await supabase
+        .from('Card')
+        .upsert({
           scryfallId: scryfallCard.id,
           name: scryfallCard.name,
           manaValue: scryfallCard.mana_value,
           colors: JSON.stringify(scryfallCard.colors || []),
           type: scryfallCard.type_line,
           imageUrl: scryfallCard.image_uris?.normal,
-        },
-      })
+        })
+
+      if (error) {
+        console.error('Error upserting card:', error)
+        throw error
+      }
     }
 
     return NextResponse.json(results)
@@ -60,18 +63,22 @@ export async function POST(request: NextRequest) {
   try {
     const { scryfallId, name, manaValue, colors, type, imageUrl } = await request.json()
 
-    const card = await prisma.card.upsert({
-      where: { scryfallId },
-      update: {},
-      create: {
+    const { data: card, error } = await supabase
+      .from('Card')
+      .upsert({
         scryfallId,
         name,
         manaValue,
         colors: Array.isArray(colors) ? JSON.stringify(colors) : colors || "",
         type,
         imageUrl,
-      },
-    })
+      })
+      .select()
+      .single()
+
+    if (error) {
+      throw error
+    }
 
     return NextResponse.json(card, { status: 201 })
   } catch (error) {

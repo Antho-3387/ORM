@@ -1,11 +1,9 @@
 /**
  * CACHE FRONTEND - React Hook
  * 
- * 2 niveaux :
- * 1. LocalStorage (persistant 24h) - Survit aux rafraîchissements
- * 2. En-mémoire (React Query) - Pendant la session
- * 
- * BUT : Réduire au maximum les appels backend
+ * Cache en-mémoire uniquement (session) via Supabase Auth session.
+ * P.S. : Les sessions utilisateur sont maintenant managées par Supabase Auth,
+ * pas besoin de localStorage !
  */
 
 import { useCallback, useEffect, useState } from 'react'
@@ -22,24 +20,19 @@ interface CacheEntry {
   timestamp: number
 }
 
-const CACHE_KEY_PREFIX = 'card_cache_'
-const CACHE_DURATION = 24 * 60 * 60 * 1000 // 24 heures
+const CACHE_DURATION = 24 * 60 * 60 * 1000 // 24 heures (session)
 const MEMORY_CACHE = new Map<string, CacheEntry>()
 
 /**
- * 🧠 Hook React pour recherche de cartes avec cache multi-niveaux
+ * 🧠 Hook React pour recherche de cartes avec cache en-mémoire
  */
 export function useCardSearch(initialQuery: string = '') {
   const [query, setQuery] = useState(initialQuery)
   const [results, setResults] = useState<CachedCard[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [cacheSource, setCacheSource] = useState<'memory' | 'localstorage' | 'api' | null>(null)
+  const [cacheSource, setCacheSource] = useState<'memory' | 'api' | null>(null)
   const [duration, setDuration] = useState(0)
-
-  const getCacheKey = useCallback((q: string) => {
-    return `${CACHE_KEY_PREFIX}${q.toLowerCase()}`
-  }, [])
 
   /**
    * 1️⃣ Vérifier le cache en-mémoire (ultra-rapide, <1ms)
@@ -60,33 +53,7 @@ export function useCardSearch(initialQuery: string = '') {
   }, [])
 
   /**
-   * 2️⃣ Vérifier le LocalStorage (rapide, <10ms)
-   */
-  const getFromLocalStorage = useCallback((q: string) => {
-    try {
-      const key = getCacheKey(q)
-      const stored = localStorage.getItem(key)
-      
-      if (!stored) return null
-
-      const entry: CacheEntry = JSON.parse(stored)
-      const age = Date.now() - entry.timestamp
-
-      if (age > CACHE_DURATION) {
-        localStorage.removeItem(key)
-        return null
-      }
-
-      console.log(`✅ [CACHE FRONTEND - LOCALSTORAGE] ${q} (Age: ${(age / 1000 / 60).toFixed(0)}min)`)
-      return entry.data
-    } catch (e) {
-      console.error('Error reading from localStorage:', e)
-      return null
-    }
-  }, [getCacheKey])
-
-  /**
-   * 3️⃣ Recherche via l'API backend
+   * 2️⃣ Recherche via l'API backend
    */
   const searchViaAPI = useCallback(async (q: string) => {
     try {
@@ -119,7 +86,7 @@ export function useCardSearch(initialQuery: string = '') {
   }, [])
 
   /**
-   * LOGIQUE PRINCIPALE : Recherche depuis + en cache multi-niveaux
+   * LOGIQUE PRINCIPALE : Recherche depuis cache ou API
    */
   const search = useCallback(
     async (searchQuery: string, forceRefresh: boolean = false) => {
@@ -134,20 +101,13 @@ export function useCardSearch(initialQuery: string = '') {
 
       try {
         let data: CachedCard[] | null = null
-        let source: 'memory' | 'localstorage' | 'api' = 'api'
+        let source: 'memory' | 'api' = 'api'
 
-        // 1️⃣ Si pas forced refresh, vérifier les caches
+        // 1️⃣ Si pas forced refresh, vérifier le cache en-mémoire
         if (!forceRefresh) {
           data = getFromMemoryCache(searchQuery)
           if (data) {
             source = 'memory'
-          }
-
-          if (!data) {
-            data = getFromLocalStorage(searchQuery)
-            if (data) {
-              source = 'localstorage'
-            }
           }
         }
 
@@ -158,23 +118,14 @@ export function useCardSearch(initialQuery: string = '') {
           source = 'api'
         }
 
-        // 3️⃣ Sauvegarder dans les caches (frontend uniquement, backend c'est auto)
+        // 3️⃣ Sauvegarder dans le cache en-mémoire uniquement
         if (source === 'api' && data && data.length > 0) {
           const entry: CacheEntry = {
             data,
             timestamp: Date.now(),
           }
           
-          // En-mémoire
           MEMORY_CACHE.set(searchQuery, entry)
-          
-          // LocalStorage
-          try {
-            localStorage.setItem(getCacheKey(searchQuery), JSON.stringify(entry))
-          } catch (e) {
-            // Storage peut être plein, c'est OK
-            console.warn('LocalStorage full:', e)
-          }
         }
 
         setResults(data || [])
@@ -187,7 +138,7 @@ export function useCardSearch(initialQuery: string = '') {
         setLoading(false)
       }
     },
-    [getFromMemoryCache, getFromLocalStorage, searchViaAPI, getCacheKey]
+    [getFromMemoryCache, searchViaAPI]
   )
 
   // Recherche automatique si query change
@@ -214,17 +165,8 @@ export function useCardSearch(initialQuery: string = '') {
  * 🗑️ Nettoyer le cache frontend
  */
 export function clearFrontendCache() {
-  // Vider localStorage
-  const keys = Object.keys(localStorage)
-  keys.forEach(key => {
-    if (key.startsWith(CACHE_KEY_PREFIX)) {
-      localStorage.removeItem(key)
-    }
-  })
-
   // Vider mémoire
   MEMORY_CACHE.clear()
-
   console.log('🧹 Frontend cache cleared')
 }
 
@@ -232,13 +174,9 @@ export function clearFrontendCache() {
  * 📊 Afficher les stats du cache frontend
  */
 export function getFrontendCacheStats() {
-  const localStorageSize = Object.keys(localStorage)
-    .filter(k => k.startsWith(CACHE_KEY_PREFIX))
-    .reduce((sum, key) => sum + localStorage.getItem(key)!.length, 0)
-
   return {
     inMemory: MEMORY_CACHE.size,
-    inLocalStorage: Object.keys(localStorage).filter(k => k.startsWith(CACHE_KEY_PREFIX)).length,
-    estimatedSize: `${(localStorageSize / 1024).toFixed(2)}KB`,
+    inLocalStorage: 0, // Pas de localStorage
+    estimatedSize: '0KB',
   }
 }

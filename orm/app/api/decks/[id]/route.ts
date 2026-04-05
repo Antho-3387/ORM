@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import prisma from '@/lib/prisma'
+import { supabase } from '@/lib/supabase'
 
 /**
  * GET /api/decks/[id] - Récupère un deck spécifique
@@ -10,22 +10,21 @@ export async function GET(
 ) {
   try {
     const { id } = await params
-    const deck = await prisma.deck.findUnique({
-      where: { id },
-      include: {
-        cards: {
-          include: {
-            card: true,
-          },
-        },
-      },
-    })
+    const { data: deck, error } = await supabase
+      .from('Deck')
+      .select('*, DeckCard(*, Card(*))')
+      .eq('id', id)
+      .single()
 
-    if (!deck) {
+    if (error && error.code === 'PGRST116') {
       return NextResponse.json(
         { error: 'Deck non trouvé' },
         { status: 404 }
       )
+    }
+
+    if (error) {
+      throw error
     }
 
     return NextResponse.json(deck)
@@ -50,9 +49,22 @@ export async function PUT(
     const userId = request.headers.get('x-user-id')
     const { name, description, list } = await request.json()
 
-    const deck = await prisma.deck.findUnique({
-      where: { id },
-    })
+    const { data: deck, error: fetchError } = await supabase
+      .from('Deck')
+      .select('*')
+      .eq('id', id)
+      .single()
+
+    if (fetchError && fetchError.code === 'PGRST116') {
+      return NextResponse.json(
+        { error: 'Deck non trouvé' },
+        { status: 404 }
+      )
+    }
+
+    if (fetchError) {
+      throw fetchError
+    }
 
     if (!deck || deck.userId !== userId) {
       return NextResponse.json(
@@ -61,21 +73,21 @@ export async function PUT(
       )
     }
 
-    const updatedDeck = await prisma.deck.update({
-      where: { id },
-      data: {
-        ...(name && { name }),
-        ...(description !== undefined && { description }),
-        ...(list !== undefined && { list }),
-      },
-      include: {
-        cards: {
-          include: {
-            card: true,
-          },
-        },
-      },
-    })
+    const updateData: any = {}
+    if (name) updateData.name = name
+    if (description !== undefined) updateData.description = description
+    if (list !== undefined) updateData.list = list
+
+    const { data: updatedDeck, error: updateError } = await supabase
+      .from('Deck')
+      .update(updateData)
+      .eq('id', id)
+      .select('*, DeckCard(*, Card(*))')
+      .single()
+
+    if (updateError) {
+      throw updateError
+    }
 
     return NextResponse.json(updatedDeck)
   } catch (error) {
@@ -98,9 +110,22 @@ export async function DELETE(
     const { id } = await params
     const userId = request.headers.get('x-user-id')
 
-    const deck = await prisma.deck.findUnique({
-      where: { id },
-    })
+    const { data: deck, error: fetchError } = await supabase
+      .from('Deck')
+      .select('*')
+      .eq('id', id)
+      .single()
+
+    if (fetchError && fetchError.code === 'PGRST116') {
+      return NextResponse.json(
+        { error: 'Deck non trouvé' },
+        { status: 404 }
+      )
+    }
+
+    if (fetchError) {
+      throw fetchError
+    }
 
     if (!deck || deck.userId !== userId) {
       return NextResponse.json(
@@ -109,9 +134,14 @@ export async function DELETE(
       )
     }
 
-    await prisma.deck.delete({
-      where: { id },
-    })
+    const { error: deleteError } = await supabase
+      .from('Deck')
+      .delete()
+      .eq('id', id)
+
+    if (deleteError) {
+      throw deleteError
+    }
 
     return NextResponse.json({ success: true })
   } catch (error) {
