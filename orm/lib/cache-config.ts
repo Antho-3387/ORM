@@ -4,7 +4,7 @@
  * Centralise tous les paramètres et configurations
  */
 
-import prisma from './prisma-client'
+import { supabase } from './supabase'
 
 // ================================================================
 // CONFIGURATION
@@ -239,11 +239,16 @@ export async function performHealthCheck(): Promise<{
   // 1. Database check
   const dbStart = Date.now()
   try {
-    // Vérifier connexion Prisma
-    await prisma.$queryRaw`SELECT 1`
+    // Vérifier connexion Supabase
+    const { error } = await supabase
+      .from('card')
+      .select('count', { count: 'exact', head: true })
+    
+    if (error) throw error
+    
     checks.database = {
       status: 'ok',
-      message: 'PostgreSQL connected',
+      message: 'Supabase PostgreSQL connected',
       duration: Date.now() - dbStart,
     }
   } catch (error: any) {

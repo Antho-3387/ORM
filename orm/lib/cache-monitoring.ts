@@ -5,7 +5,6 @@
  */
 
 import { supabase } from '@/lib/supabase'
-import prisma from '@/lib/prisma-client'
 
 export interface CacheMetrics {
   timestamp: Date
@@ -334,13 +333,13 @@ export async function generateCacheInsights(): Promise<{
   }
 
   // Insight 3: Popular cards
-  const allCards = await prisma.card.findMany({
-    orderBy: { searchCount: 'desc' },
-    take: 5,
-    select: { name: true, searchCount: true },
-  })
+  const { data: allCards, error: cardsError } = await supabase
+    .from('card')
+    .select('name, searchCount')
+    .order('searchCount', { ascending: false })
+    .limit(5)
 
-  if (allCards.length > 0) {
+  if (allCards && allCards.length > 0) {
     insights.push({
       insight: `Les cartes les plus populaires: ${allCards.map(c => c.name).join(', ')}`,
       severity: 'info',
