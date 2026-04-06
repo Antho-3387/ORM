@@ -4,6 +4,8 @@
  * Centralise tous les paramètres et configurations
  */
 
+import prisma from './prisma-client'
+
 // ================================================================
 // CONFIGURATION
 // ================================================================
