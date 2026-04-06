@@ -5,6 +5,7 @@
  */
 
 import { supabase } from '@/lib/supabase'
+import prisma from '@/lib/prisma-client'
 
 export interface CacheMetrics {
   timestamp: Date
