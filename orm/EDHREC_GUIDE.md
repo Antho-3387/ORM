@@ -154,27 +154,23 @@ Section réutilisable pour tendances.
 
 ---
 
-## 🔍 Recherche de cartes et intégration EDHREC
+## 🔍 Recherche de cartes
 
 La page `/cards` permet de rechercher dans le catalogue complet Scryfall, avec
-images et pagination, ou de consulter les recommandations EDHREC d'un
-commandant. La route serveur `/api/scryfall/search` transmet les recherches à
-Scryfall sans exposer de clé. Le composant de recherche est également disponible
-dans la création et la modification des decks; la sélection ajoute le nom exact
-à la decklist, dont les cartes sont illustrées dans la page du deck.
+images et pagination. La route serveur `/api/scryfall/search` transmet les
+recherches à Scryfall sans exposer de clé. Le composant de recherche est
+également disponible dans la création et la modification des decks; la sélection
+ajoute le nom exact à la decklist.
 
-La route serveur `/api/edhrec?commander=...` récupère les données JSON publiques
-d'EDHREC. Les recommandations affichent leur image, le nombre de decks et la
-synergie lorsqu'ils sont fournis.
-
-Cette intégration n'utilise aucune clé ni aucun secret EDHREC. Si le service
-est indisponible ou ne reconnaît pas le commandant, la page présente une erreur
-au lieu d'afficher des résultats de remplacement.
+Les images de la page d'un deck sont résolues en lots via Scryfall, puis
+mémorisées temporairement pour limiter les appels et les erreurs de limitation
+de débit. Les cartes recto-verso utilisent également l'image de leur première
+face.
 
 ### API Scryfall complémentaire
 
 Scryfall reste utilisée par les autres fonctionnalités de recherche de cartes;
-la galerie `/cards` utilise les recommandations EDHREC décrites ci-dessus.
+la galerie `/cards` utilise cette API pour les résultats paginés et illustrés.
 
 ```typescript
 // lib/scryfall.ts
@@ -199,9 +195,8 @@ interface ScryfallCard {
 ## 🎯 Prochaines Étapes (TODO)
 
 ### Phase 1: Backend completé
-- [x] Charger les recommandations EDHREC par commandant
-- [x] Afficher les cartes, images et statistiques de recommandation
-- [ ] Ajouter des filtres sur les catégories de recommandations EDHREC
+- [x] Rechercher le catalogue Scryfall avec pagination
+- [x] Afficher les images des cartes dans la recherche et les decks
 
 ### Phase 2: Fonctionnalités utilisateur
 - [ ] Système d'authentification complet

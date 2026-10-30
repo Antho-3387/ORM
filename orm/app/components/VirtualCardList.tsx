@@ -271,7 +271,6 @@ function GalleryView({ cards, loading }: { cards: CardInfo[]; loading?: boolean 
  */
 function LazyCardImage({ card }: { card: CardInfo }) {
   const [isVisible, setIsVisible] = useState(false)
-  const [imageUrl, setImageUrl] = useState<string | null>(null)
   const [imageError, setImageError] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
@@ -295,29 +294,6 @@ function LazyCardImage({ card }: { card: CardInfo }) {
     return () => observer.disconnect()
   }, [])
 
-  // Charger l'image quand elle devient visible
-  useEffect(() => {
-    if (!isVisible) return
-
-    const loadImage = async () => {
-      try {
-        const response = await fetch(`/api/cards/image?name=${encodeURIComponent(card.name)}`)
-        const data = await response.json()
-        
-        if (data.imageUrl) {
-          setImageUrl(data.imageUrl)
-        } else {
-          setImageError(true)
-        }
-      } catch (error) {
-        console.error(`Error loading image for ${card.name}:`, error)
-        setImageError(true)
-      }
-    }
-
-    loadImage()
-  }, [isVisible, card.name])
-
   return (
     <div
       ref={ref}
@@ -334,7 +310,7 @@ function LazyCardImage({ card }: { card: CardInfo }) {
       }}
     >
       {/* Skeleton Loader: affiche une animation pendant le chargement */}
-      {!isVisible || (!imageUrl && !imageError) ? (
+      {!isVisible ? (
         <div style={{
           width: '100%',
           height: '100%',
@@ -342,13 +318,14 @@ function LazyCardImage({ card }: { card: CardInfo }) {
           backgroundSize: '200% 100%',
           animation: 'shimmer 2s infinite',
         }} />
-      ) : imageError || !imageUrl ? (
+      ) : imageError || !card.imageUrl ? (
         <div style={{ color: '#a0a0b0', textAlign: 'center', padding: '1rem' }}>
-          📷 Non trouvée
+          <p>📷 Image indisponible</p>
+          {card.error && <p style={{ fontSize: '0.7rem', marginTop: '0.5rem' }}>{card.error}</p>}
         </div>
       ) : (
         <img
-          src={imageUrl}
+          src={card.imageUrl}
           alt={card.name}
           onError={() => setImageError(true)}
           style={{
@@ -360,7 +337,7 @@ function LazyCardImage({ card }: { card: CardInfo }) {
       )}
 
       {/* Quantité badge */}
-      {card.quantity > 1 && imageUrl && (
+      {card.quantity > 1 && card.imageUrl && (
         <div
           style={{
             position: 'absolute',

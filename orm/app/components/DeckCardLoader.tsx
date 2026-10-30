@@ -4,15 +4,6 @@ import React, { useState, useEffect } from 'react'
 import { parseDecklist, CardInfo } from '@/lib/deck-parser'
 import { VirtualCardList } from './VirtualCardList'
 
-/**
- * COMPOSANT WRAPPER pour charger et afficher les cartes d'un deck
- * 
- * CORRECTION CORS:
- * - Ne pré-charge PAS les images côté client (CORS bloqué)
- * - VirtualCardList → LazyCardImage chargent via /api/cards/image
- * - Cette API route appelle Scryfall côté SERVEUR (pas de CORS!)
- */
-
 interface DeckCardLoaderProps {
   deckList: string
 }
@@ -20,35 +11,86 @@ interface DeckCardLoaderProps {
 export function DeckCardLoader({ deckList }: DeckCardLoaderProps) {
   const [cards, setCards] = useState<CardInfo[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [retryCount, setRetryCount] = useState(0)
 
   useEffect(() => {
+    const controller = new AbortController()
+
     const loadCards = async () => {
       try {
         setLoading(true)
+        setError(null)
 
-        // ÉTAPE 1: Parser la decklist brute
         const parsed = parseDecklist(deckList)
-        
+
+        setCards(parsed)
         if (parsed.length === 0) {
-          setCards([])
-          setLoading(false)
           return
         }
 
-        // ÉTAPE 2: Afficher les cartes SANS images d'abord
-        // Les images seront chargées par LazyCardImage via API route
-        setCards(parsed)
+        const response = await fetch('/api/cards/images', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ names: parsed.map((card) => card.name) }),
+          signal: controller.signal,
+        })
+        const data: { images?: Record<string, string | null>; notFound?: string[]; error?: string } =
+          await response.json()
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Impossible de charger les images des cartes.')
+        }
+
+        const images = new Map(
+          Object.entries(data.images || {}).map(([name, imageUrl]) => [name.toLowerCase(), imageUrl])
+        )
+
+        setCards(parsed.map((card) => ({
+          ...card,
+          imageUrl: images.get(card.name.toLowerCase()) || undefined,
+          error: images.get(card.name.toLowerCase())
+            ? undefined
+            : 'Image introuvable dans Scryfall.',
+        })))
+
+        if (data.notFound?.length) {
+          setError(`Image introuvable pour : ${data.notFound.join(', ')}.`)
+        }
       } catch (error) {
-        console.error('Error loading cards:', error)
+        if (controller.signal.aborted) return
+        console.error('Erreur lors du chargement des images du deck:', error)
+        setError(
+          error instanceof Error
+            ? error.message
+            : 'Impossible de charger les images. Réessayez.'
+        )
       } finally {
-        setLoading(false)
+        if (!controller.signal.aborted) setLoading(false)
       }
     }
 
-    loadCards()
-  }, [deckList])
+    void loadCards()
+    return () => controller.abort()
+  }, [deckList, retryCount])
 
-  // Passer les cartes au composant VirtualCardList
-  // VirtualCardList gère l'affichage + lazy loading des images
-  return <VirtualCardList cards={cards} loading={loading} />
+  return (
+    <>
+      {error && (
+        <div role="alert" className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-500/40 bg-amber-950/40 p-3 text-sm text-amber-100">
+          <span>{error}</span>
+          {!loading && (
+            <button
+              type="button"
+              onClick={() => setRetryCount((count) => count + 1)}
+              className="rounded border border-amber-400/40 px-3 py-1 hover:bg-amber-900/50"
+            >
+              Réessayer
+            </button>
+          )}
+        </div>
+      )}
+      <VirtualCardList cards={cards} loading={loading} />
+    </>
+  )
 }
