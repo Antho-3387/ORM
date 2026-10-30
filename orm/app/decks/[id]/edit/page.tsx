@@ -5,6 +5,8 @@ import { use, useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/lib/auth-context'
+import { CardSearch, type ScryfallCard } from '@/components/CardSearch'
+import { addCardToDecklist } from '@/lib/deck-list'
 
 interface Deck {
   id: string
@@ -107,9 +109,9 @@ export default function DeckEditPage({ params }: DeckEditPageProps) {
       setTimeout(() => {
         router.push(`/decks/${id}`)
       }, 1500)
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error:', err)
-      setError(err.message || 'Erreur lors de la sauvegarde')
+      setError(err instanceof Error ? err.message : 'Erreur lors de la sauvegarde')
     } finally {
       setSaving(false)
     }
@@ -175,7 +177,7 @@ export default function DeckEditPage({ params }: DeckEditPageProps) {
           padding: '2rem'
         }}>
           <h1 style={{ fontSize: '2rem', fontWeight: '700', color: '#ffffff', marginBottom: '2rem' }}>
-            Éditer "{deck.name}"
+            Éditer &quot;{deck.name}&quot;
           </h1>
 
           {error && (
@@ -274,8 +276,19 @@ export default function DeckEditPage({ params }: DeckEditPageProps) {
                 Decklist
               </label>
               <p style={{ fontSize: '0.9rem', color: '#a0a0b0', marginBottom: '0.5rem' }}>
-                Format: Quantité + Nom (ex: "1 Atraxa, Praetors' Voice")
+                Format: Quantité + Nom (ex: &quot;1 Atraxa, Praetors&apos; Voice&quot;)
               </p>
+              <p style={{ fontSize: '0.9rem', color: '#a0a0b0', marginBottom: '0.75rem' }}>
+                Rechercher une carte pour l’ajouter à la decklist :
+              </p>
+              <div style={{ marginBottom: '1rem' }}>
+                <CardSearch
+                  onSelect={(card: ScryfallCard) => {
+                    setList((current) => addCardToDecklist(current, card.name))
+                  }}
+                  placeholder="Rechercher une carte Magic..."
+                />
+              </div>
               <textarea
                 value={list}
                 onChange={(e) => setList(e.target.value)}

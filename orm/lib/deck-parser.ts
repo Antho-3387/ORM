@@ -20,10 +20,15 @@ function parseDecklist(list: string): CardInfo[] {
   const cards: CardInfo[] = []
 
   for (const line of lines) {
-    const match = line.match(/^(\d+)\s+(.+)$/)
+    const match = line.match(/^(?:SB:\s*)?(\d+)\s*x?\s+(.+)$/i)
     if (match) {
       const quantity = parseInt(match[1])
-      const name = match[2].trim()
+      const name = match[2]
+        .trim()
+        .replace(/\s+\([A-Z0-9]{2,6}\)(?:\s+[\w-]+)?$/i, '')
+        .trim()
+
+      if (!name || quantity < 1) continue
 
       // Chercher si la carte existe déjà
       const existing = cards.find(c => c.name.toLowerCase() === name.toLowerCase())

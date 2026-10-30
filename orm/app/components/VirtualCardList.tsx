@@ -334,7 +334,7 @@ function LazyCardImage({ card }: { card: CardInfo }) {
       }}
     >
       {/* Skeleton Loader: affiche une animation pendant le chargement */}
-      {!isVisible || !imageUrl ? (
+      {!isVisible || (!imageUrl && !imageError) ? (
         <div style={{
           width: '100%',
           height: '100%',
@@ -342,7 +342,7 @@ function LazyCardImage({ card }: { card: CardInfo }) {
           backgroundSize: '200% 100%',
           animation: 'shimmer 2s infinite',
         }} />
-      ) : imageError ? (
+      ) : imageError || !imageUrl ? (
         <div style={{ color: '#a0a0b0', textAlign: 'center', padding: '1rem' }}>
           📷 Non trouvée
         </div>

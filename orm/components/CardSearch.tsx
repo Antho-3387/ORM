@@ -1,25 +1,30 @@
 'use client'
 
-import { useState, useCallback, useEffect, useRef } from 'react'
+import { useState, useCallback, useEffect } from 'react'
+import Image from 'next/image'
 
 export interface ScryfallCard {
   id: string
   name: string
   image_uris?: {
+    small?: string
     normal: string
     large: string
   }
   card_faces?: Array<{
     name: string
     image_uris?: {
+      small?: string
       normal: string
       large: string
     }
   }>
-  mana_cost: string
+  mana_cost?: string
   cmc: number
   type_line: string
   color_identity: string[]
+  colors?: string[]
+  scryfall_uri?: string
 }
 
 interface CardSearchProps {
@@ -27,64 +32,60 @@ interface CardSearchProps {
   placeholder?: string
 }
 
-// Simple debounce implementation
-function createDebounce<T extends (...args: any[]) => any>(fn: T, delay: number) {
-  let timeoutId: NodeJS.Timeout | null = null
-  return (...args: Parameters<T>) => {
-    if (timeoutId) clearTimeout(timeoutId)
-    timeoutId = setTimeout(() => fn(...args), delay)
-  }
-}
-
 export function CardSearch({ onSelect, placeholder = 'Search cards...' }: CardSearchProps) {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<ScryfallCard[]>([])
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const [isOpen, setIsOpen] = useState(false)
-  const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
-  const searchCards = useCallback(async (searchQuery: string) => {
+  const searchCards = useCallback(async (searchQuery: string, signal: AbortSignal) => {
     if (!searchQuery.trim()) {
       setResults([])
+      setError(null)
       return
     }
 
     setLoading(true)
+    setError(null)
     try {
       const response = await fetch(
-        `https://api.scryfall.com/cards/search?q=${encodeURIComponent(searchQuery)}&unique=cards&order=edhrec`
+        `/api/scryfall/search?q=${encodeURIComponent(searchQuery)}`,
+        { signal }
       )
+      const data = await response.json()
 
-      if (response.ok) {
-        const data = await response.json()
-        setResults(data.data?.slice(0, 10) || [])
+      if (!response.ok) {
+        throw new Error(data.error || 'Impossible de rechercher les cartes.')
       }
+
+      setResults(data.data?.slice(0, 10) || [])
     } catch (error) {
+      if (signal.aborted) return
       console.error('Search error:', error)
+      setResults([])
+      setError(error instanceof Error ? error.message : 'La recherche a échoué.')
     } finally {
-      setLoading(false)
+      if (!signal.aborted) setLoading(false)
     }
   }, [])
 
   useEffect(() => {
-    if (debounceTimeoutRef.current) {
-      clearTimeout(debounceTimeoutRef.current)
-    }
-
     if (query) {
       setIsOpen(true)
-      debounceTimeoutRef.current = setTimeout(() => {
-        searchCards(query)
+      const controller = new AbortController()
+      const timer = setTimeout(() => {
+        void searchCards(query, controller.signal)
       }, 300)
+
+      return () => {
+        clearTimeout(timer)
+        controller.abort()
+      }
     } else {
       setResults([])
       setIsOpen(false)
-    }
-
-    return () => {
-      if (debounceTimeoutRef.current) {
-        clearTimeout(debounceTimeoutRef.current)
-      }
+      setLoading(false)
     }
   }, [query, searchCards])
 
@@ -121,20 +122,26 @@ export function CardSearch({ onSelect, placeholder = 'Search cards...' }: CardSe
         <div className="absolute top-full left-0 right-0 mt-2 bg-slate-900/95 backdrop-blur border border-slate-700/50 rounded-lg shadow-xl z-50 max-h-96 overflow-y-auto">
           {results.map((card) => {
             const image =
+              card.image_uris?.small ||
               card.image_uris?.normal ||
+              card.card_faces?.[0]?.image_uris?.small ||
               card.card_faces?.[0]?.image_uris?.normal ||
               ''
 
             return (
               <button
                 key={card.id}
+                type="button"
                 onClick={() => handleSelectCard(card)}
                 className="w-full text-left px-4 py-3 hover:bg-slate-800/50 border-b border-slate-700/30 last:border-b-0 transition-colors flex gap-3"
               >
                 {image && (
-                  <img
+                  <Image
                     src={image}
                     alt={card.name}
+                    width={48}
+                    height={64}
+                    unoptimized
                     className="w-12 h-16 object-cover rounded"
                   />
                 )}
@@ -150,9 +157,15 @@ export function CardSearch({ onSelect, placeholder = 'Search cards...' }: CardSe
         </div>
       )}
 
-      {isOpen && query && results.length === 0 && !loading && (
+      {isOpen && error && !loading && (
+        <div role="alert" className="absolute top-full left-0 right-0 mt-2 bg-slate-900/95 backdrop-blur border border-red-500/30 rounded-lg p-4 text-center text-red-200 text-sm z-50">
+          {error}
+        </div>
+      )}
+
+      {isOpen && query && results.length === 0 && !loading && !error && (
         <div className="absolute top-full left-0 right-0 mt-2 bg-slate-900/95 backdrop-blur border border-slate-700/50 rounded-lg p-4 text-center text-slate-400 text-sm">
-          No cards found
+          Aucune carte trouvée
         </div>
       )}
     </div>

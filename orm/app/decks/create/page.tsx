@@ -6,6 +6,8 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/lib/auth-context'
 import { generateId } from '@/lib/id-generator'
+import { CardSearch, type ScryfallCard } from '@/components/CardSearch'
+import { addCardToDecklist } from '@/lib/deck-list'
 
 export default function CreateDeckPage() {
   const [deckName, setDeckName] = useState('')
@@ -79,9 +81,9 @@ export default function CreateDeckPage() {
         setDeckList('')
         router.push('/decks')
       }, 1500)
-    } catch (err: any) {
+    } catch (err) {
       console.error('Erreur création deck:', err)
-      setError(err.message || 'Une erreur est survenue')
+      setError(err instanceof Error ? err.message : 'Une erreur est survenue')
     } finally {
       setLoading(false)
     }
@@ -140,11 +142,26 @@ export default function CreateDeckPage() {
         </div>
 
         <div>
+          <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '1.1rem', fontWeight: '600' }}>
+            Ajouter une carte
+          </label>
+          <p style={{ fontSize: '0.9rem', color: '#a0a0b0', marginBottom: '0.75rem' }}>
+            Recherchez une carte pour l’ajouter à votre deck avec son nom exact.
+          </p>
+          <div style={{ marginBottom: '1.5rem' }}>
+            <CardSearch
+              onSelect={(card: ScryfallCard) => {
+                setDeckList((current) => addCardToDecklist(current, card.name))
+              }}
+              placeholder="Rechercher une carte Magic..."
+            />
+          </div>
+
           <label style={{ display: 'block', marginBottom: '1rem', fontSize: '1.1rem', fontWeight: '600' }}>
             Decklist (Format: Quantité + Nom)
           </label>
           <p style={{ fontSize: '0.9rem', color: '#a0a0b0', marginBottom: '1rem' }}>
-            Exemple: 1 Atraxa, Praetors' Voice
+            Exemple: 1 Atraxa, Praetors&apos; Voice
           </p>
           <textarea
             value={deckList}

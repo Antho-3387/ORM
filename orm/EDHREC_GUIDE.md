@@ -154,13 +154,18 @@ Section réutilisable pour tendances.
 
 ---
 
-## 🔌 Intégration EDHREC
+## 🔍 Recherche de cartes et intégration EDHREC
 
-La page `/cards` affiche les recommandations « Top Cards » d'EDHREC pour le
-commandant recherché. La route serveur `/api/edhrec?commander=...` récupère les
-données JSON publiques d'EDHREC, ce qui évite d'exposer le service directement
-au navigateur. Les cartes affichent leur image EDHREC, leur nombre de decks et
-leur synergie lorsqu'ils sont fournis.
+La page `/cards` permet de rechercher dans le catalogue complet Scryfall, avec
+images et pagination, ou de consulter les recommandations EDHREC d'un
+commandant. La route serveur `/api/scryfall/search` transmet les recherches à
+Scryfall sans exposer de clé. Le composant de recherche est également disponible
+dans la création et la modification des decks; la sélection ajoute le nom exact
+à la decklist, dont les cartes sont illustrées dans la page du deck.
+
+La route serveur `/api/edhrec?commander=...` récupère les données JSON publiques
+d'EDHREC. Les recommandations affichent leur image, le nombre de decks et la
+synergie lorsqu'ils sont fournis.
 
 Cette intégration n'utilise aucune clé ni aucun secret EDHREC. Si le service
 est indisponible ou ne reconnaît pas le commandant, la page présente une erreur
