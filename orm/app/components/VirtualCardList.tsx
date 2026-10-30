@@ -63,6 +63,14 @@ export function VirtualCardList({ cards, loading, onProgressUpdate }: VirtualCar
     () => cards.filter(c => c.imageUrl).length,
     [cards]
   )
+  const mainDeckCards = useMemo(
+    () => cards.filter(card => card.section !== 'commander'),
+    [cards]
+  )
+  const commanderCards = useMemo(
+    () => cards.filter(card => card.section === 'commander'),
+    [cards]
+  )
 
   // ============================================================
   // OPTIMISATION RENDU: Callback mémorisé pour la copie
@@ -71,16 +79,22 @@ export function VirtualCardList({ cards, loading, onProgressUpdate }: VirtualCar
   // ============================================================
   
   const handleCopyDecklist = useCallback(async () => {
-    const decklistText = cards
+    const mainDeckText = mainDeckCards
       .map(c => `${c.quantity} ${c.name}`)
       .join('\n')
+    const commanderText = commanderCards
+      .map(c => `${c.quantity} ${c.name}`)
+      .join('\n')
+    const decklistText = [mainDeckText, commanderText]
+      .filter(Boolean)
+      .join('\n\n')
     
     try {
       await navigator.clipboard.writeText(decklistText)
     } catch (err) {
       console.error('Failed to copy:', err)
     }
-  }, [cards])
+  }, [commanderCards, mainDeckCards])
 
   if (cards.length === 0) {
     return (
@@ -151,7 +165,22 @@ export function VirtualCardList({ cards, loading, onProgressUpdate }: VirtualCar
           MODE GALERIE - Images
           ============================================================ */}
       {viewMode === 'gallery' && (
-        <GalleryView cards={cards} loading={loading} />
+        <>
+          {commanderCards.length > 0 && (
+            <section style={{ marginBottom: '1.5rem' }}>
+              <h4 style={{ color: '#ffffff', marginBottom: '0.75rem' }}>Commandant</h4>
+              <GalleryView cards={commanderCards} loading={loading} />
+            </section>
+          )}
+          {mainDeckCards.length > 0 && (
+            <section>
+              {commanderCards.length > 0 && (
+                <h4 style={{ color: '#ffffff', marginBottom: '0.75rem' }}>Deck</h4>
+              )}
+              <GalleryView cards={mainDeckCards} loading={loading} />
+            </section>
+          )}
+        </>
       )}
 
       {/* ============================================================
@@ -194,6 +223,9 @@ export function VirtualCardList({ cards, loading, onProgressUpdate }: VirtualCar
                 <th style={{ textAlign: 'left', padding: '0.75rem', color: '#3b82f6', fontWeight: '600' }}>
                   Carte
                 </th>
+                <th style={{ textAlign: 'left', padding: '0.75rem', color: '#3b82f6', fontWeight: '600' }}>
+                  Zone
+                </th>
               </tr>
             </thead>
             <tbody style={{
@@ -218,6 +250,9 @@ export function VirtualCardList({ cards, loading, onProgressUpdate }: VirtualCar
                     </td>
                     <td style={{ padding: '0.75rem' }}>
                       {card.name}
+                    </td>
+                    <td style={{ padding: '0.75rem', color: '#a0a0b0' }}>
+                      {card.section === 'commander' ? 'Commandant' : 'Deck'}
                     </td>
                   </tr>
                 )

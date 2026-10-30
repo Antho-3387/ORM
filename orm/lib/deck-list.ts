@@ -23,5 +23,20 @@ export function addCardToDecklist(decklist: string, cardName: string) {
   }
 
   const trimmedDecklist = decklist.trimEnd()
+  const updatedLines = trimmedDecklist.split('\n')
+  let commanderSeparator = -1
+  for (let index = updatedLines.length - 1; index >= 0; index--) {
+    if (!updatedLines[index].trim()) {
+      commanderSeparator = index
+    } else if (commanderSeparator >= 0) {
+      break
+    }
+  }
+
+  if (commanderSeparator >= 0) {
+    updatedLines.splice(commanderSeparator, 0, `1 ${cardName.trim()}`)
+    return updatedLines.join('\n')
+  }
+
   return `${trimmedDecklist}${trimmedDecklist ? '\n' : ''}1 ${cardName.trim()}`
 }

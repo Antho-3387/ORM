@@ -161,12 +161,12 @@ export default function CreateDeckPage() {
             Decklist (Format: Quantité + Nom)
           </label>
           <p style={{ fontSize: '0.9rem', color: '#a0a0b0', marginBottom: '1rem' }}>
-            Exemple: 1 Atraxa, Praetors&apos; Voice
+            Une ligne vide avant le commandant permet de le distinguer du reste du deck.
           </p>
           <textarea
             value={deckList}
             onChange={(e) => setDeckList(e.target.value)}
-            placeholder="1 Atraxa, Praetors' Voice&#10;1 Sol Ring&#10;1 Counterspell&#10;..."
+            placeholder="1 Sol Ring&#10;1 Counterspell&#10;...&#10;&#10;1 Atraxa, Praetors' Voice"
             disabled={loading}
           />
         </div>

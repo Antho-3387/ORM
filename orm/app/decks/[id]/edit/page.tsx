@@ -276,7 +276,7 @@ export default function DeckEditPage({ params }: DeckEditPageProps) {
                 Decklist
               </label>
               <p style={{ fontSize: '0.9rem', color: '#a0a0b0', marginBottom: '0.5rem' }}>
-                Format: Quantité + Nom (ex: &quot;1 Atraxa, Praetors&apos; Voice&quot;)
+                Format: Quantité + Nom. Séparez le commandant du deck avec une ligne vide.
               </p>
               <p style={{ fontSize: '0.9rem', color: '#a0a0b0', marginBottom: '0.75rem' }}>
                 Rechercher une carte pour l’ajouter à la decklist :
@@ -292,7 +292,7 @@ export default function DeckEditPage({ params }: DeckEditPageProps) {
               <textarea
                 value={list}
                 onChange={(e) => setList(e.target.value)}
-                placeholder="1 Atraxa, Praetors' Voice&#10;1 Sol Ring&#10;..."
+                placeholder="1 Sol Ring&#10;...&#10;&#10;1 Atraxa, Praetors' Voice"
                 disabled={saving}
                 style={{
                   width: '100%',

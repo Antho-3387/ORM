@@ -7,21 +7,38 @@ import { searchCards } from './scryfall'
 interface CardInfo {
   quantity: number
   name: string
+  section?: 'commander'
   imageUrl?: string
   loading?: boolean
   error?: string
 }
 
 /**
- * Parse une decklist au format "Quantité Nomdelacarte"
+ * Parse une decklist au format "Quantité Nomdelacarte".
+ * Le dernier bloc séparé par une ligne vide correspond à la zone de commandant.
  */
 function parseDecklist(list: string): CardInfo[] {
-  const lines = list.split('\n').filter(line => line.trim())
+  const sections = list.split(/\r?\n\s*\r?\n/)
+  let lastSectionIndex = sections.length - 1
+  while (lastSectionIndex >= 0 && !sections[lastSectionIndex].trim()) {
+    lastSectionIndex--
+  }
+  const lastSection = sections[lastSectionIndex]?.trim()
+  const commanderSection =
+    lastSectionIndex > 0 &&
+    lastSection &&
+    !lastSection.split(/\r?\n/).some(line => /^\s*SB:/i.test(line))
+      ? lastSectionIndex
+      : -1
   const cards: CardInfo[] = []
 
-  for (const line of lines) {
-    const match = line.match(/^(?:SB:\s*)?(\d+)\s*x?\s+(.+)$/i)
-    if (match) {
+  sections.forEach((sectionText, sectionIndex) => {
+    const section = sectionIndex === commanderSection ? 'commander' : undefined
+
+    for (const line of sectionText.split(/\r?\n/)) {
+      const match = line.match(/^(?:SB:\s*)?(\d+)\s*x?\s+(.+)$/i)
+      if (!match) continue
+
       const quantity = parseInt(match[1])
       const name = match[2]
         .trim()
@@ -30,15 +47,18 @@ function parseDecklist(list: string): CardInfo[] {
 
       if (!name || quantity < 1) continue
 
-      // Chercher si la carte existe déjà
-      const existing = cards.find(c => c.name.toLowerCase() === name.toLowerCase())
+      const existing = cards.find(
+        card =>
+          card.name.toLowerCase() === name.toLowerCase() &&
+          card.section === section
+      )
       if (existing) {
         existing.quantity += quantity
       } else {
-        cards.push({ quantity, name })
+        cards.push({ quantity, name, section })
       }
     }
-  }
+  })
 
   return cards
 }
