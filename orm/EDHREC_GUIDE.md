@@ -154,9 +154,23 @@ Section réutilisable pour tendances.
 
 ---
 
-## 🔌 Intégration API (Prochaines étapes)
+## 🔌 Intégration EDHREC
 
-### Connexion à Scryfall API:
+La page `/cards` affiche les recommandations « Top Cards » d'EDHREC pour le
+commandant recherché. La route serveur `/api/edhrec?commander=...` récupère les
+données JSON publiques d'EDHREC, ce qui évite d'exposer le service directement
+au navigateur. Les cartes affichent leur image EDHREC, leur nombre de decks et
+leur synergie lorsqu'ils sont fournis.
+
+Cette intégration n'utilise aucune clé ni aucun secret EDHREC. Si le service
+est indisponible ou ne reconnaît pas le commandant, la page présente une erreur
+au lieu d'afficher des résultats de remplacement.
+
+### API Scryfall complémentaire
+
+Scryfall reste utilisée par les autres fonctionnalités de recherche de cartes;
+la galerie `/cards` utilise les recommandations EDHREC décrites ci-dessus.
+
 ```typescript
 // lib/scryfall.ts
 const response = await fetch('https://api.scryfall.com/cards/search');
@@ -180,10 +194,9 @@ interface ScryfallCard {
 ## 🎯 Prochaines Étapes (TODO)
 
 ### Phase 1: Backend completé
-- [ ] Intégrer API Scryfall complètement
-- [ ] Implémenter recherche par API (au lieu de mock data)
-- [ ] Ajouter pagination
-- [ ] Cache des données
+- [x] Charger les recommandations EDHREC par commandant
+- [x] Afficher les cartes, images et statistiques de recommandation
+- [ ] Ajouter des filtres sur les catégories de recommandations EDHREC
 
 ### Phase 2: Fonctionnalités utilisateur
 - [ ] Système d'authentification complet
