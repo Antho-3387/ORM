@@ -12,26 +12,31 @@ export default function AuthPage() {
   const [name, setName] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [notice, setNotice] = useState('')
   const router = useRouter()
   const { login, register } = useAuth()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
+    setNotice('')
     setLoading(true)
 
     try {
       if (isLogin) {
         await login(email, password)
       } else {
-        await register(email, password, name)
+        const requiresEmailConfirmation = await register(email, password, name)
+        if (requiresEmailConfirmation) {
+          setNotice('Consultez votre boîte mail pour confirmer votre adresse, puis connectez-vous.')
+          setLoading(false)
+          return
+        }
       }
-      // Small delay to ensure session is fully established
-      await new Promise(resolve => setTimeout(resolve, 500))
       router.push('/decks')
-    } catch (err: any) {
+    } catch (err) {
       console.error('Auth error:', err)
-      setError(err.message || 'Erreur d\'authentification')
+      setError(err instanceof Error ? err.message : 'Erreur d\'authentification')
       setLoading(false)
     }
   }
@@ -128,6 +133,18 @@ export default function AuthPage() {
               </div>
             )}
 
+            {notice && (
+              <div role="status" style={{
+                background: '#2a3a4e',
+                color: '#fff',
+                padding: '0.75rem',
+                borderRadius: '6px',
+                fontSize: '0.9rem',
+              }}>
+                {notice}
+              </div>
+            )}
+
             <button
               type="submit"
               disabled={loading}
@@ -169,7 +186,7 @@ export default function AuthPage() {
           </div>
 
           <Link href="/" style={{ display: 'block', marginTop: '1rem', textAlign: 'center', color: '#a0a0a0', textDecoration: 'none', fontSize: '0.9rem' }}>
-            ← Retour à l'accueil
+            ← Retour à l&apos;accueil
           </Link>
         </div>
       </div>

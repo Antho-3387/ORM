@@ -12,6 +12,65 @@ export interface User {
 export interface AuthResponse {
   user: User | null
   error: string | null
+  requiresEmailConfirmation?: boolean
+}
+
+async function ensureUserProfile(authUser: { id: string; email?: string }, name?: string): Promise<AuthResponse> {
+  const email = authUser.email
+  if (!email) {
+    return { user: null, error: 'Le compte Supabase ne contient pas d’adresse email.' }
+  }
+
+  const { data: existingUser, error: lookupError } = await supabase
+    .from('User')
+    .select('*')
+    .eq('id', authUser.id)
+    .maybeSingle()
+
+  if (lookupError) {
+    return { user: null, error: 'Erreur lors de la vérification du profil: ' + lookupError.message }
+  }
+
+  if (existingUser) {
+    return { user: existingUser as User, error: null }
+  }
+
+  const { data: createdUser, error: createError } = await supabase
+    .from('User')
+    .insert({
+      id: authUser.id,
+      email,
+      password: '',
+      name: name || email.split('@')[0],
+    })
+    .select()
+    .maybeSingle()
+
+  if (!createError && createdUser) {
+    return { user: createdUser as User, error: null }
+  }
+
+  if (createError?.code === '23505') {
+    const { data: userWithAuthId, error: retryError } = await supabase
+      .from('User')
+      .select('*')
+      .eq('id', authUser.id)
+      .maybeSingle()
+
+    if (!retryError && userWithAuthId) {
+      return { user: userWithAuthId as User, error: null }
+    }
+
+    return {
+      user: null,
+      error: 'Cette adresse email est déjà liée à un ancien profil. Contactez un administrateur pour le rattacher à votre compte.',
+    }
+  }
+
+  return {
+    user: null,
+    error: 'Erreur lors de la création du profil: ' + (createError?.message || 'aucune donnée retournée'),
+  }
 }
 
 /**
@@ -34,44 +93,18 @@ export async function signUp(email: string, password: string, name?: string): Pr
       return { user: null, error: authError.message }
     }
 
+    if (authData.user && !authData.session) {
+      return { user: null, error: null, requiresEmailConfirmation: true }
+    }
+
     if (authData.user) {
-      // Créer l'enregistrement utilisateur dans la table User
-      const { data, error: dbError } = await supabase
-        .from('User')
-        .insert([
-          {
-            id: authData.user.id,
-            email: authData.user.email || email,
-            password: '',
-            name: name || email.split('@')[0],
-          },
-        ])
-        .select()
-        .maybeSingle()
-
-      if (dbError) {
-        console.error('DB Error:', dbError)
-        // If it's a duplicate key error, that's OK - just return the auth user
-        if (dbError.message.includes('duplicate')) {
-          return {
-            user: {
-              id: authData.user.id,
-              email: authData.user.email || email,
-              name: name || email.split('@')[0],
-            },
-            error: null,
-          }
-        }
-        return { user: null, error: 'Erreur lors de la création du profil: ' + dbError.message }
-      }
-
-      return { user: (data || authData.user) as User, error: null }
+      return ensureUserProfile(authData.user, name)
     }
 
     return { user: null, error: 'Erreur inconnue lors de l\'inscription' }
-  } catch (error: any) {
+  } catch (error) {
     console.error('SignUp Error:', error)
-    return { user: null, error: error.message }
+    return { user: null, error: error instanceof Error ? error.message : 'Erreur inconnue lors de l’inscription' }
   }
 }
 
@@ -90,65 +123,12 @@ export async function signIn(email: string, password: string): Promise<AuthRespo
     }
 
     if (data.user) {
-      // Récupérer les infos utilisateur depuis la DB
-      let { data: userData, error: dbError } = await supabase
-        .from('User')
-        .select('*')
-        .eq('id', data.user.id)
-        .maybeSingle()
-
-      // If user doesn't exist in DB yet, create it
-      if (!userData && !dbError) {
-        const { data: newUser, error: createError } = await supabase
-          .from('User')
-          .insert([
-            {
-              id: data.user.id,
-              email: data.user.email || email,
-              password: '',
-              name: email.split('@')[0],
-            },
-          ])
-          .select()
-          .maybeSingle()
-
-        if (createError) {
-          // Ignore duplicate key errors - user might already exist
-          if (!createError.message.includes('duplicate')) {
-            console.error('Create user error:', createError)
-            return { user: null, error: 'Erreur lors de la création du profil' }
-          }
-          // Try to fetch again
-          const { data: retryData } = await supabase
-            .from('User')
-            .select('*')
-            .eq('id', data.user.id)
-            .maybeSingle()
-          userData = retryData
-        } else {
-          userData = newUser
-        }
-      }
-
-      if (dbError) {
-        console.error('DB Error:', dbError)
-        // Return auth user data even if DB lookup fails
-        return {
-          user: {
-            id: data.user.id,
-            email: data.user.email || email,
-            name: email.split('@')[0],
-          },
-          error: null,
-        }
-      }
-
-      return { user: (userData || data.user) as User, error: null }
+      return ensureUserProfile(data.user)
     }
 
     return { user: null, error: 'Unknown error' }
-  } catch (error: any) {
-    return { user: null, error: error.message }
+  } catch (error) {
+    return { user: null, error: error instanceof Error ? error.message : 'Erreur inconnue lors de la connexion' }
   }
 }
 
@@ -162,8 +142,8 @@ export async function signOut(): Promise<{ error: string | null }> {
       return { error: error.message }
     }
     return { error: null }
-  } catch (error: any) {
-    return { error: error.message }
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : 'Erreur inconnue lors de la déconnexion' }
   }
 }
 

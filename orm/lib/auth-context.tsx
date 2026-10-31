@@ -9,7 +9,7 @@ interface AuthContextType {
   user: User | null
   loading: boolean
   login: (email: string, password: string) => Promise<void>
-  register: (email: string, password: string, name: string) => Promise<void>
+  register: (email: string, password: string, name: string) => Promise<boolean>
   logout: () => Promise<void>
   isAuthenticated: boolean
 }
@@ -87,13 +87,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const register = async (email: string, password: string, name: string) => {
-    const { user: newUser, error } = await signUp(email, password, name)
+    const { user: newUser, error, requiresEmailConfirmation } = await signUp(email, password, name)
     if (error) {
       throw new Error(error)
+    }
+    if (requiresEmailConfirmation) {
+      setUser(null)
+      setLoading(false)
+      return true
+    }
+    if (!newUser) {
+      throw new Error('Inscription réussie, mais aucune session Supabase active n’a été créée. Connectez-vous avant de continuer.')
     }
     console.log('User registered:', newUser)
     setUser(newUser)
     setLoading(false)
+    return false
   }
 
   const login = async (email: string, password: string) => {

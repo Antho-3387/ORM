@@ -41,6 +41,21 @@ export default function CreateDeckPage() {
     setError('')
 
     try {
+      const { data: { user: authUser }, error: authError } = await supabase.auth.getUser()
+      if (authError) {
+        console.error('Session verification error:', authError)
+        throw new Error('Impossible de vérifier votre session Supabase. Rechargez la page et reconnectez-vous.')
+      }
+
+      if (!authUser) {
+        setError('Votre session Supabase est absente ou expirée. Connectez-vous à nouveau avant de créer un deck.')
+        return
+      }
+
+      if (authUser.id !== user.id) {
+        throw new Error('La session Supabase ne correspond pas au compte affiché. Rechargez la page et reconnectez-vous.')
+      }
+
       // Générer un ID unique
       const deckId = generateId()
 
@@ -50,7 +65,7 @@ export default function CreateDeckPage() {
         name: deckName.trim(),
         description: deckDescription.trim() || null,
         list: deckList.trim(),
-        userId: user.id,
+        userId: authUser.id,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       }
