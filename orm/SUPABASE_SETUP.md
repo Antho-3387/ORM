@@ -53,3 +53,12 @@ Assurez-vous que les variables d'environnement sont définies dans votre platefo
 - `DATABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+
+### Confirmation des emails d'inscription
+
+Pour que les nouveaux comptes reçoivent un email de confirmation:
+
+1. Dans Supabase, ouvrez **Authentication → Providers → Email** et activez la confirmation d'adresse email.
+2. Dans **Authentication → URL Configuration**, définissez la Site URL sur `https://orm-5yhz.onrender.com` et ajoutez `https://orm-5yhz.onrender.com/auth` aux Redirect URLs.
+3. Configurez un fournisseur SMTP personnalisé dans les paramètres SMTP d'Authentication pour l'envoi en production. Le SMTP par défaut de Supabase est limité et n'est pas destiné à l'envoi public en production.
+4. Après une inscription, l'application affiche un bouton pour renvoyer l'email. Vérifiez aussi les journaux Auth du projet et le dossier spam si aucun message n'arrive.

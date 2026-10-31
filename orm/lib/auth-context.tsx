@@ -1,8 +1,7 @@
 'use client'
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
-import { signIn, signUp, signOut } from './auth-service'
-import { User } from './auth-service'
+import { signIn, signUp, signOut, type User } from './auth-service'
 import { supabase } from './supabase'
 
 interface AuthContextType {
@@ -20,69 +19,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
 
-  // Initialize auth state on mount
   useEffect(() => {
     let isMounted = true
 
-    const checkSession = async () => {
-      try {
-        // Check if there's a current session
-        const { data: { session } } = await supabase.auth.getSession()
-        if (isMounted && session?.user) {
-          console.log('Found session:', session.user.email)
-          // Get user from DB
-          try {
-            const { data: userData, error: userError } = await supabase
-              .from('User')
-              .select('*')
-              .eq('id', session.user.id)
-              .maybeSingle()
-            if (userError) {
-              console.error('User fetch error:', userError)
-              // Use auth user data as fallback with safe email
-              const fallbackUser = {
-                id: session.user.id,
-                email: session.user.email || 'user@example.com',
-              }
-              setUser(fallbackUser)
-            } else if (userData) {
-              setUser(userData)
-            } else {
-              // User doesn't exist in DB, create it
-              const userEmail = session.user.email || 'user@example.com'
-              const { data: created } = await supabase
-                .from('User')
-                .insert([
-                  {
-                    id: session.user.id,
-                    email: userEmail,
-                    password: '',
-                    name: userEmail.split('@')[0] || 'User',
-                  },
-                ])
-                .select()
-                .maybeSingle()
-              setUser(created || { id: session.user.id, email: userEmail })
-            }
-          } catch (err) {
-            console.error('User fetch exception:', err)
-            const fallbackEmail = session.user.email || 'user@example.com'
-            setUser({ id: session.user.id, email: fallbackEmail })
-          }
-        }
-      } catch (error) {
-        console.error('Session check error:', error)
-      } finally {
-        if (isMounted) {
-          setLoading(false)
-        }
-      }
-    }
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!isMounted) return
 
-    checkSession()
+      const authUser = session?.user
+      setUser(authUser ? {
+        id: authUser.id,
+        email: authUser.email || '',
+        name: authUser.user_metadata?.name,
+      } : null)
+      setLoading(false)
+    })
 
     return () => {
       isMounted = false
+      subscription.unsubscribe()
     }
   }, [])
 

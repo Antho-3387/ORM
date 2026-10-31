@@ -15,6 +15,10 @@ export interface AuthResponse {
   requiresEmailConfirmation?: boolean
 }
 
+function getAuthRedirectUrl(): string {
+  return `${window.location.origin}/auth`
+}
+
 async function ensureUserProfile(authUser: { id: string; email?: string }, name?: string): Promise<AuthResponse> {
   const email = authUser.email
   if (!email) {
@@ -86,6 +90,7 @@ export async function signUp(email: string, password: string, name?: string): Pr
         data: {
           name: name || email.split('@')[0],
         },
+        emailRedirectTo: getAuthRedirectUrl(),
       },
     })
 
@@ -105,6 +110,24 @@ export async function signUp(email: string, password: string, name?: string): Pr
   } catch (error) {
     console.error('SignUp Error:', error)
     return { user: null, error: error instanceof Error ? error.message : 'Erreur inconnue lors de l’inscription' }
+  }
+}
+
+export async function resendSignupConfirmation(email: string): Promise<{ error: string | null }> {
+  try {
+    const { error } = await supabase.auth.resend({
+      type: 'signup',
+      email,
+      options: {
+        emailRedirectTo: getAuthRedirectUrl(),
+      },
+    })
+
+    return { error: error?.message || null }
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error.message : 'Erreur inconnue lors du renvoi de l’email.',
+    }
   }
 }
 

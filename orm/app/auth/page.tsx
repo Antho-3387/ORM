@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/auth-context'
+import { resendSignupConfirmation } from '@/lib/auth-service'
 import Link from 'next/link'
 
 export default function AuthPage() {
@@ -13,6 +14,8 @@ export default function AuthPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
+  const [awaitingEmailConfirmation, setAwaitingEmailConfirmation] = useState(false)
+  const [resendingEmail, setResendingEmail] = useState(false)
   const router = useRouter()
   const { login, register } = useAuth()
 
@@ -20,6 +23,7 @@ export default function AuthPage() {
     e.preventDefault()
     setError('')
     setNotice('')
+    setAwaitingEmailConfirmation(false)
     setLoading(true)
 
     try {
@@ -28,7 +32,8 @@ export default function AuthPage() {
       } else {
         const requiresEmailConfirmation = await register(email, password, name)
         if (requiresEmailConfirmation) {
-          setNotice('Consultez votre boîte mail pour confirmer votre adresse, puis connectez-vous.')
+          setNotice('Supabase a créé le compte sans ouvrir de session. Vérifiez votre boîte mail et les courriers indésirables. Si aucun message n’arrive, vérifiez la configuration SMTP du projet Supabase.')
+          setAwaitingEmailConfirmation(true)
           setLoading(false)
           return
         }
@@ -38,6 +43,29 @@ export default function AuthPage() {
       console.error('Auth error:', err)
       setError(err instanceof Error ? err.message : 'Erreur d\'authentification')
       setLoading(false)
+    }
+  }
+
+  const handleResendConfirmation = async () => {
+    if (!email.trim()) {
+      setError('Saisissez votre adresse email avant de demander un renvoi.')
+      return
+    }
+
+    setResendingEmail(true)
+    setError('')
+    setNotice('')
+
+    try {
+      const { error: resendError } = await resendSignupConfirmation(email)
+      if (resendError) {
+        console.error('Confirmation email resend error:', resendError)
+        setError(`Supabase n’a pas pu renvoyer l’email : ${resendError}`)
+      } else {
+        setNotice('Demande de renvoi envoyée. Vérifiez aussi vos courriers indésirables.')
+      }
+    } finally {
+      setResendingEmail(false)
     }
   }
 
@@ -143,6 +171,17 @@ export default function AuthPage() {
               }}>
                 {notice}
               </div>
+            )}
+
+            {(awaitingEmailConfirmation || isLogin) && (
+              <button
+                type="button"
+                onClick={handleResendConfirmation}
+                disabled={resendingEmail}
+                style={{ background: '#404050' }}
+              >
+                {resendingEmail ? 'Envoi en cours...' : 'Renvoyer l’email de confirmation'}
+              </button>
             )}
 
             <button
