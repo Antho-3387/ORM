@@ -31,8 +31,24 @@ CREATE TABLE IF NOT EXISTS public."Card" (
   "manaValue" INTEGER,
   colors TEXT DEFAULT '',
   type TEXT NOT NULL,
-  "imageUrl" TEXT
+  "imageUrl" TEXT,
+  "cachedAt" TIMESTAMP NOT NULL DEFAULT NOW(),
+  "lastSearchedAt" TIMESTAMP NOT NULL DEFAULT NOW(),
+  "searchCount" INTEGER NOT NULL DEFAULT 1,
+  source TEXT NOT NULL DEFAULT 'scryfall'
 );
+
+-- Keep existing Card tables aligned with the Prisma schema without deleting data.
+ALTER TABLE public."Card"
+  ADD COLUMN IF NOT EXISTS "cachedAt" TIMESTAMP NOT NULL DEFAULT NOW(),
+  ADD COLUMN IF NOT EXISTS "lastSearchedAt" TIMESTAMP NOT NULL DEFAULT NOW(),
+  ADD COLUMN IF NOT EXISTS "searchCount" INTEGER NOT NULL DEFAULT 1,
+  ADD COLUMN IF NOT EXISTS source TEXT NOT NULL DEFAULT 'scryfall';
+
+CREATE INDEX IF NOT EXISTS "Card_name_idx" ON public."Card"(name);
+CREATE INDEX IF NOT EXISTS "Card_scryfallId_idx" ON public."Card"("scryfallId");
+CREATE INDEX IF NOT EXISTS "Card_lastSearchedAt_idx" ON public."Card"("lastSearchedAt");
+CREATE INDEX IF NOT EXISTS "Card_searchCount_idx" ON public."Card"("searchCount" DESC);
 
 -- Table DeckCard
 CREATE TABLE IF NOT EXISTS public."DeckCard" (

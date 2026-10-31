@@ -1,14 +1,7 @@
--- Supprimer les anciennes tables (cascade)
-DROP TABLE IF EXISTS public."DeckCard" CASCADE;
-DROP TABLE IF EXISTS public."Deck" CASCADE;
-DROP TABLE IF EXISTS public."Card" CASCADE;
-DROP TABLE IF EXISTS public."User" CASCADE;
-DROP TABLE IF EXISTS public."_prisma_migrations" CASCADE;
-
--- Créer les tables avec le bon schéma
+-- Créer ou compléter le schéma sans supprimer les tables ni leurs données.
 
 -- Table User
-CREATE TABLE public."User" (
+CREATE TABLE IF NOT EXISTS public."User" (
   id TEXT PRIMARY KEY,
   email TEXT UNIQUE NOT NULL,
   password TEXT NOT NULL,
@@ -18,7 +11,7 @@ CREATE TABLE public."User" (
 );
 
 -- Table Deck
-CREATE TABLE public."Deck" (
+CREATE TABLE IF NOT EXISTS public."Deck" (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
   description TEXT,
@@ -28,21 +21,36 @@ CREATE TABLE public."Deck" (
   "updatedAt" TIMESTAMP DEFAULT NOW()
 );
 
-CREATE INDEX "Deck_userId_idx" ON public."Deck"("userId");
+CREATE INDEX IF NOT EXISTS "Deck_userId_idx" ON public."Deck"("userId");
 
 -- Table Card
-CREATE TABLE public."Card" (
+CREATE TABLE IF NOT EXISTS public."Card" (
   id TEXT PRIMARY KEY,
   "scryfallId" TEXT UNIQUE NOT NULL,
   name TEXT NOT NULL,
   "manaValue" INTEGER,
   colors TEXT DEFAULT '',
   type TEXT NOT NULL,
-  "imageUrl" TEXT
+  "imageUrl" TEXT,
+  "cachedAt" TIMESTAMP NOT NULL DEFAULT NOW(),
+  "lastSearchedAt" TIMESTAMP NOT NULL DEFAULT NOW(),
+  "searchCount" INTEGER NOT NULL DEFAULT 1,
+  source TEXT NOT NULL DEFAULT 'scryfall'
 );
 
+ALTER TABLE public."Card"
+  ADD COLUMN IF NOT EXISTS "cachedAt" TIMESTAMP NOT NULL DEFAULT NOW(),
+  ADD COLUMN IF NOT EXISTS "lastSearchedAt" TIMESTAMP NOT NULL DEFAULT NOW(),
+  ADD COLUMN IF NOT EXISTS "searchCount" INTEGER NOT NULL DEFAULT 1,
+  ADD COLUMN IF NOT EXISTS source TEXT NOT NULL DEFAULT 'scryfall';
+
+CREATE INDEX IF NOT EXISTS "Card_name_idx" ON public."Card"(name);
+CREATE INDEX IF NOT EXISTS "Card_scryfallId_idx" ON public."Card"("scryfallId");
+CREATE INDEX IF NOT EXISTS "Card_lastSearchedAt_idx" ON public."Card"("lastSearchedAt");
+CREATE INDEX IF NOT EXISTS "Card_searchCount_idx" ON public."Card"("searchCount" DESC);
+
 -- Table DeckCard
-CREATE TABLE public."DeckCard" (
+CREATE TABLE IF NOT EXISTS public."DeckCard" (
   id TEXT PRIMARY KEY,
   "deckId" TEXT NOT NULL REFERENCES public."Deck"(id) ON DELETE CASCADE,
   "cardId" TEXT NOT NULL REFERENCES public."Card"(id) ON DELETE CASCADE,
@@ -50,11 +58,11 @@ CREATE TABLE public."DeckCard" (
   UNIQUE("deckId", "cardId")
 );
 
-CREATE INDEX "DeckCard_deckId_idx" ON public."DeckCard"("deckId");
-CREATE INDEX "DeckCard_cardId_idx" ON public."DeckCard"("cardId");
+CREATE INDEX IF NOT EXISTS "DeckCard_deckId_idx" ON public."DeckCard"("deckId");
+CREATE INDEX IF NOT EXISTS "DeckCard_cardId_idx" ON public."DeckCard"("cardId");
 
 -- Prisma migrations table
-CREATE TABLE public."_prisma_migrations" (
+CREATE TABLE IF NOT EXISTS public."_prisma_migrations" (
   id TEXT PRIMARY KEY,
   checksum TEXT NOT NULL,
   "finished_at" TIMESTAMP,

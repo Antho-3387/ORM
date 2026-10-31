@@ -4,9 +4,9 @@
 -- 
 -- Sécurisation complète du modèle de données :
 -- - User : Chacun voit/modifie seulement son profil
--- - Deck : Chacun voit/modifie seulement ses decks (publics visibles à tous)
+-- - Deck : Tous les utilisateurs voient les decks; seul leur propriétaire les modifie
 -- - Card : Publique (lecture), backend seulement (write)
--- - DeckCard : Hérité des permissions du deck parent
+-- - DeckCard : Lecture publique; écriture réservée au propriétaire du deck parent
 --
 -- EXÉCUTION:
 --   1. Aller sur https://supabase.io → SQL Editor
@@ -21,17 +21,25 @@
 -- ================================================================
 
 DROP POLICY IF EXISTS "Users can read all decks" ON public."Deck";
+DROP POLICY IF EXISTS "Users can view own or public decks" ON public."Deck";
+DROP POLICY IF EXISTS "Users can view own decks" ON public."Deck";
 DROP POLICY IF EXISTS "Users can only modify their own decks" ON public."Deck";
 DROP POLICY IF EXISTS "Users can only delete their own decks" ON public."Deck";
 DROP POLICY IF EXISTS "Users can create decks" ON public."Deck";
 DROP POLICY IF EXISTS "Users can read all deck cards" ON public."DeckCard";
+DROP POLICY IF EXISTS "Users can view own or public deckcard" ON public."DeckCard";
 DROP POLICY IF EXISTS "Users can modify deck cards they own" ON public."DeckCard";
+DROP POLICY IF EXISTS "Users can modify deck cards in own decks" ON public."DeckCard";
 DROP POLICY IF EXISTS "Users can delete deck cards from their decks" ON public."DeckCard";
+DROP POLICY IF EXISTS "Users can delete deck cards from own decks" ON public."DeckCard";
 DROP POLICY IF EXISTS "Users can insert deck cards in their decks" ON public."DeckCard";
+DROP POLICY IF EXISTS "Users can insert deck cards in own decks" ON public."DeckCard";
 DROP POLICY IF EXISTS "Users can read all users" ON public."User";
+DROP POLICY IF EXISTS "Users can read own user record" ON public."User";
 DROP POLICY IF EXISTS "Users can insert own user record" ON public."User";
 DROP POLICY IF EXISTS "Users can update own user record" ON public."User";
 DROP POLICY IF EXISTS "Anyone can read cards" ON public."Card";
+DROP POLICY IF EXISTS "Card table is publicly readable" ON public."Card";
 DROP POLICY IF EXISTS "Authenticated can read migrations" ON public."_prisma_migrations";
 
 -- ================================================================
@@ -40,19 +48,19 @@ DROP POLICY IF EXISTS "Authenticated can read migrations" ON public."_prisma_mig
 
 ALTER TABLE public."User" ENABLE ROW LEVEL SECURITY;
 
--- Policy: Les users peuvent voir tous les profils (pour affichage public si besoin)
-CREATE POLICY "Users can read all users" ON public."User"
-  FOR SELECT USING (true);
+-- Un utilisateur ne peut lire que son propre profil.
+CREATE POLICY "Users can read own user record" ON public."User"
+  FOR SELECT USING ((select auth.uid()::text) = id);
 
 -- Policy: Les users authentifiés peuvent créer LEURS propres enregistrements
 CREATE POLICY "Users can insert own user record" ON public."User"
-  FOR INSERT WITH CHECK (
-    (auth.uid()::text = id) OR id IS NOT NULL
-  );
+  FOR INSERT WITH CHECK (auth.uid()::text = id);
 
 -- Policy: Les users peuvent modifier SEULEMENT leur profil
 CREATE POLICY "Users can update own user record" ON public."User"
-  FOR UPDATE USING (auth.uid()::text = id);
+  FOR UPDATE
+  USING ((select auth.uid()::text) = id)
+  WITH CHECK ((select auth.uid()::text) = id);
 
 -- ================================================================
 -- 2. DECK TABLE - Users managent leurs decks
@@ -60,24 +68,23 @@ CREATE POLICY "Users can update own user record" ON public."User"
 
 ALTER TABLE public."Deck" ENABLE ROW LEVEL SECURITY;
 
--- Policy: Les users peuvent voir leurs decks OU les decks publiques
-CREATE POLICY "Users can view own or public decks" ON public."Deck"
-  FOR SELECT USING (
-    auth.uid()::text = "userId" 
-    OR isPublic = true
-  );
+-- Tous les decks sont visibles; seuls leurs propriétaires peuvent les modifier.
+CREATE POLICY "Users can read all decks" ON public."Deck"
+  FOR SELECT USING (true);
 
 -- Policy: Les users peuvent modifier SEULEMENT leurs decks
 CREATE POLICY "Users can only modify their own decks" ON public."Deck"
-  FOR UPDATE USING (auth.uid()::text = "userId");
+  FOR UPDATE
+  USING ((select auth.uid()::text) = "userId")
+  WITH CHECK ((select auth.uid()::text) = "userId");
 
 -- Policy: Les users peuvent supprimer SEULEMENT leurs decks
 CREATE POLICY "Users can only delete their own decks" ON public."Deck"
-  FOR DELETE USING (auth.uid()::text = "userId");
+  FOR DELETE USING ((select auth.uid()::text) = "userId");
 
 -- Policy: Les users peuvent créer des decks
 CREATE POLICY "Users can create decks" ON public."Deck"
-  FOR INSERT WITH CHECK (auth.uid()::text = "userId");
+  FOR INSERT WITH CHECK ((select auth.uid()::text) = "userId");
 
 -- ================================================================
 -- 3. CARD TABLE - Publique en lecture, backend en écriture
@@ -99,21 +106,20 @@ CREATE POLICY "Card table is publicly readable" ON public."Card"
 
 ALTER TABLE public."DeckCard" ENABLE ROW LEVEL SECURITY;
 
--- Policy: Les users peuvent voir les cartes de leurs decks OU decks publiques
-CREATE POLICY "Users can view own or public deckcard" ON public."DeckCard"
-  FOR SELECT USING (
-    "deckId" IN (
-      SELECT id FROM public."Deck" 
-      WHERE auth.uid()::text = "userId" 
-         OR isPublic = true
-    )
-  );
+-- Les decks étant visibles par tous, leurs cartes le sont aussi.
+CREATE POLICY "Users can read all deck cards" ON public."DeckCard"
+  FOR SELECT USING (true);
 
 -- Policy: Les users peuvent modifier les cartes de leurs decks SEULEMENT
 CREATE POLICY "Users can modify deck cards in own decks" ON public."DeckCard"
   FOR UPDATE 
   USING (
-    auth.uid()::text IN (
+    (select auth.uid()::text) IN (
+      SELECT "userId" FROM public."Deck" WHERE id = "deckId"
+    )
+  )
+  WITH CHECK (
+    (select auth.uid()::text) IN (
       SELECT "userId" FROM public."Deck" WHERE id = "deckId"
     )
   );
@@ -122,7 +128,7 @@ CREATE POLICY "Users can modify deck cards in own decks" ON public."DeckCard"
 CREATE POLICY "Users can delete deck cards from own decks" ON public."DeckCard"
   FOR DELETE 
   USING (
-    auth.uid()::text IN (
+    (select auth.uid()::text) IN (
       SELECT "userId" FROM public."Deck" WHERE id = "deckId"
     )
   );
@@ -131,7 +137,7 @@ CREATE POLICY "Users can delete deck cards from own decks" ON public."DeckCard"
 CREATE POLICY "Users can insert deck cards in own decks" ON public."DeckCard"
   FOR INSERT 
   WITH CHECK (
-    auth.uid()::text IN (
+    (select auth.uid()::text) IN (
       SELECT "userId" FROM public."Deck" WHERE id = "deckId"
     )
   );
@@ -140,17 +146,13 @@ CREATE POLICY "Users can insert deck cards in own decks" ON public."DeckCard"
 -- 5. PERMISSIONS GLOBALES
 -- ================================================================
 
--- Permettre les reads/writes via PostgREST aux authenticated users
--- (RLS policies contrôlent quel data voir/modifier)
-GRANT SELECT, INSERT, UPDATE, DELETE ON public."User" TO authenticated;
-GRANT SELECT, INSERT, UPDATE, DELETE ON public."Deck" TO authenticated;
-GRANT SELECT, INSERT, UPDATE, DELETE ON public."Card" TO authenticated;
-GRANT SELECT, INSERT, UPDATE, DELETE ON public."DeckCard" TO authenticated;
+-- Permissions minimales : RLS contrôle ensuite les lignes accessibles.
+REVOKE ALL ON public."User", public."Deck", public."Card",
+  public."DeckCard", public."_prisma_migrations" FROM anon, authenticated;
 
--- Permettre les reads anonymes (non-authentifiés) si besoin
--- GRANT SELECT ON public."Deck" TO anon;  -- Voir decks publiques
--- GRANT SELECT ON public."Card" TO anon;  -- Voir les cartes
--- GRANT SELECT ON public."DeckCard" TO anon;  -- Voir cartes de decks publiques
+GRANT SELECT, INSERT, UPDATE ON public."User" TO authenticated;
+GRANT SELECT ON public."Deck", public."Card", public."DeckCard" TO anon, authenticated;
+GRANT INSERT, UPDATE, DELETE ON public."Deck", public."DeckCard" TO authenticated;
 
 -- ================================================================
 -- VERIFICATION: Vérifier que RLS est activé
@@ -182,18 +184,17 @@ ORDER BY tablename, policyname;
 --
 -- ✅ TEST 1: Login comme User A
 --   - SELECT * FROM "User" WHERE id = user_a_id (✅ Doit voir)
---   - SELECT * FROM "User" WHERE id = user_b_id (✅ Doit voir - tous les users sont publiques)
+--   - SELECT * FROM "User" WHERE id = user_b_id (❌ Ne doit pas voir)
 --   - UPDATE "User" SET name='Test' WHERE id = user_a_id (✅ Doit marcher)
 --   - UPDATE "User" SET name='Test' WHERE id = user_b_id (❌ Doit échouer)
 --
--- ✅ TEST 2: Decks privés
---   - CREATE Deck (userId=user_a_id, isPublic=false) (✅ Doit marcher)
---   - SELECT * FROM "Deck" (✅ Doit voir que son deck)
---   - Login comme User B, SELECT * FROM "Deck" (❌ Ne voit rien)
+-- ✅ TEST 2: Decks
+--   - CREATE Deck (userId=user_a_id) (✅ Doit marcher)
+--   - SELECT * FROM "Deck" (✅ Doit voir les decks)
+--   - Login comme User B, SELECT * FROM "Deck" (✅ Voit les decks)
 --
--- ✅ TEST 3: Decks publiques
---   - UPDATE Deck SET isPublic=true (✅ Doit marcher)
---   - Login comme User B, SELECT * FROM "Deck" (✅ Voit le deck public)
+-- ✅ TEST 3: Modification
+--   - User B essaie de modifier le deck de A (❌ Doit échouer)
 --
 -- ✅ TEST 4: Cards
 --   - SELECT * FROM "Card" (✅ User A et B voient)

@@ -2,7 +2,7 @@
 
 ### 🎯 Objectif
 
-Sécuriser Supabase en configuring les politiques RLS pour que chaque utilisateur ne puisse voir/modifier que ses propres données.
+Sécuriser Supabase avec des règles adaptées : profils privés, decks lisibles par tous et modifiables uniquement par leur propriétaire.
 
 ---
 
@@ -27,13 +27,16 @@ Sécuriser Supabase en configuring les politiques RLS pour que chaque utilisateu
 2. Attendre 10-15 secondes
 3. Voir le message: ✅ **"Success. No rows returned"**
 
+> Si les tables et les données existent déjà, exécuter uniquement `rls-policies.sql`.
+> Ne pas supprimer/recréer les tables pour corriger une erreur RLS.
+
 ---
 
 ## 🔐 Politiques RLS Configurées
 
 ### **1. USER Table**
 ```
-✅ SELECT : Tous les users peuvent voir tous les profils (publique)
+✅ SELECT : Chaque utilisateur ne peut voir que son propre profil
 ✅ INSERT : Chacun peut créer son propre profil (auth.uid() = id)
 ✅ UPDATE : Chacun peut modifier SEULEMENT son profil
 ❌ DELETE : Personne (admin doit utiliser Supabase Auth)
@@ -41,7 +44,7 @@ Sécuriser Supabase en configuring les politiques RLS pour que chaque utilisateu
 
 ### **2. DECK Table**
 ```
-✅ SELECT : Voir vos decks + decks publiques (isPublic=true)
+✅ SELECT : Voir tous les decks (la table ne possède pas de colonne `isPublic`)
 ✅ INSERT : Créer des decks pour vous-même
 ✅ UPDATE : Modifier vos decks SEULEMENT
 ✅ DELETE : Supprimer vos decks SEULEMENT
@@ -55,7 +58,7 @@ Sécuriser Supabase en configuring les politiques RLS pour que chaque utilisateu
 
 ### **4. DECKCARD Table**
 ```
-✅ SELECT : Voir cartes de vos decks + decks publiques
+✅ SELECT : Voir les cartes de tous les decks
 ✅ INSERT/UPDATE/DELETE : Modifier cartes SEULEMENT dans vos decks
 ```
 
@@ -69,36 +72,27 @@ Après activation, **vérifier que RLS fonctionne** en testant:
 ```sql
 -- Login comme User A
 SELECT * FROM "User" WHERE id = 'user_a_id';  -- ✅ Doit voir
-SELECT * FROM "User" WHERE id = 'user_b_id';  -- ✅ Doit voir (tous users publics)
+SELECT * FROM "User" WHERE id = 'user_b_id';  -- ❌ Ne doit pas voir le profil de B
 
 -- Essayer modifier le profil de User B
 UPDATE "User" SET name = 'Hack' WHERE id = 'user_b_id';  -- ❌ ERREUR
 -- Error: new row violates row-level security policy
 ```
 
-### **Test 2: Decks Privés**
+### **Test 2: Création de decks**
 ```sql
--- Login comme User A, créer un deck privé
-INSERT INTO "Deck" (id, name, userId, isPublic) 
-VALUES ('deck-1', 'Deck A', 'user_a_id', false);  -- ✅ Marche
+-- Login comme User A, créer un deck
+INSERT INTO "Deck" (id, name, userId) 
+VALUES ('deck-1', 'Deck A', 'user_a_id');  -- ✅ Marche si user_a_id = auth.uid()
 
 -- Voir les decks
-SELECT * FROM "Deck";  -- ✅ Voit que son deck 'Deck A'
+SELECT * FROM "Deck";  -- ✅ Voit les decks
 
 -- Login comme User B
-SELECT * FROM "Deck";  -- ❌ Voit RIEN (deck de A est privé)
+SELECT * FROM "Deck";  -- ✅ Voit aussi le deck de A
 ```
 
-### **Test 3: Decks Publiques**
-```sql
--- User A rend son deck public
-UPDATE "Deck" SET isPublic = true WHERE id = 'deck-1';  -- ✅ Marche
-
--- Login comme User B
-SELECT * FROM "Deck";  -- ✅ Voit maintenant 'Deck A'
-```
-
-### **Test 4: DeckCards**
+### **Test 3: DeckCards**
 ```sql
 -- User A ajoute une carte à son deck
 INSERT INTO "DeckCard" (deckId, cardId, quantity) 

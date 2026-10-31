@@ -8,44 +8,34 @@ WHERE table_name = 'Deck'
 ORDER BY ordinal_position;
 
 -- 2. Vérifier les RLS policies
-SELECT policyname, policycmd
+SELECT schemaname, tablename, policyname, cmd, roles, qual, with_check
 FROM pg_policies
-WHERE tablename = 'Deck'
-ORDER BY policyname;
+WHERE schemaname = 'public'
+  AND tablename IN ('User', 'Deck', 'Card', 'DeckCard', '_prisma_migrations')
+ORDER BY tablename, policyname;
 
--- 3. Compter les decks par statut
+-- 3. Vérifier l'activation de RLS
+SELECT tablename, rowsecurity
+FROM pg_tables
+WHERE schemaname = 'public'
+  AND tablename IN ('User', 'Deck', 'Card', 'DeckCard', '_prisma_migrations')
+ORDER BY tablename;
+
+-- 4. Compter les lignes (requêtes en lecture seule)
 SELECT 
-  'Total decks' as metric,
+  'User' AS table_name,
   COUNT(*) as count
-FROM public."Deck"
+FROM public."User"
 UNION ALL
 SELECT 
-  'Decks avec ID null',
-  COUNT(*) 
-FROM public."Deck" 
-WHERE id IS NULL
+  'Deck', COUNT(*) FROM public."Deck"
 UNION ALL
-SELECT 
-  'Decks avec userId null',
-  COUNT(*) 
-FROM public."Deck" 
-WHERE "userId" IS NULL
+SELECT 'Card', COUNT(*) FROM public."Card"
 UNION ALL
-SELECT 
-  'Decks sans list',
-  COUNT(*) 
-FROM public."Deck" 
-WHERE list IS NULL;
+SELECT 'DeckCard', COUNT(*) FROM public."DeckCard"
+ORDER BY table_name;
 
--- 4. Nettoyer les decks invalides
-DELETE FROM public."Deck" WHERE id IS NULL;
-DELETE FROM public."Deck" WHERE "userId" IS NULL;
-
--- 5. Vérifier les User IDs
-SELECT COUNT(*) as total_users, COUNT(DISTINCT id) as unique_ids
-FROM public."User";
-
--- 6. Lister les 10 derniers decks créés
+-- 5. Lister les 10 derniers decks créés
 SELECT id, name, "list", "userId", "createdAt"
 FROM public."Deck"
 ORDER BY "createdAt" DESC
