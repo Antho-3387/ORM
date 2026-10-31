@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { searchCards, searchCardsByColor, searchCardsByPower } from '@/lib/scryfall'
 import { supabase } from '@/lib/supabase'
+import { getCardImageUrl } from '@/lib/card-image'
 
 /**
  * GET /api/cards/search - Recherche des cartes par nom
@@ -37,7 +38,7 @@ export async function GET(request: NextRequest) {
           manaValue: scryfallCard.mana_value,
           colors: JSON.stringify(scryfallCard.colors || []),
           type: scryfallCard.type_line,
-          imageUrl: scryfallCard.image_uris?.normal,
+          imageUrl: getCardImageUrl(scryfallCard),
         })
 
       if (error) {

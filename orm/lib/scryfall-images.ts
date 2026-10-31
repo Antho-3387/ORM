@@ -1,7 +1,9 @@
+import { getCardImageUrl, type CardImageSource } from './card-image'
+
 interface ScryfallCardImage {
   name?: string
-  image_uris?: { normal?: string }
-  card_faces?: Array<{ image_uris?: { normal?: string } }>
+  image_uris?: CardImageSource['image_uris']
+  card_faces?: CardImageSource['card_faces']
 }
 
 interface ScryfallCollectionResponse {
@@ -22,11 +24,7 @@ function cacheKey(name: string) {
 }
 
 function imageForCard(card: ScryfallCardImage) {
-  return (
-    card.image_uris?.normal ||
-    card.card_faces?.find((face) => face.image_uris?.normal)?.image_uris?.normal ||
-    null
-  )
+  return getCardImageUrl(card) || null
 }
 
 function delay(milliseconds: number) {

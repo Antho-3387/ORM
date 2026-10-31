@@ -1,4 +1,6 @@
 // Simple in-memory cache (will reset when server restarts, but helpful during session)
+import { getCardImageUrl } from '@/lib/card-image'
+
 const cardCache = new Map<string, string | null>()
 
 async function fetchCardWithRetry(cardName: string, maxRetries = 2): Promise<string | null> {
@@ -31,7 +33,7 @@ async function fetchCardWithRetry(cardName: string, maxRetries = 2): Promise<str
       if (response.ok) {
         const data = await response.json()
         if (data.data && data.data.length > 0) {
-          return data.data[0].image_uris?.normal || null
+          return getCardImageUrl(data.data[0]) || null
         }
       }
 

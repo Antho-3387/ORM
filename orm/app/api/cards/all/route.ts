@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { getCardImageUrl } from '@/lib/card-image'
 
 interface Card {
   id: string
@@ -88,7 +89,7 @@ export async function GET() {
             allCards.push({
               id: card.id,
               name: card.name,
-              imageUrl: card.image_uris?.normal,
+              imageUrl: getCardImageUrl(card),
               type: card.type_line,
               manaValue: card.mana_value,
               colors: card.colors,

@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
 import { CardSearch, type ScryfallCard } from '@/components/CardSearch'
+import { getCardImageUrl } from '@/lib/card-image'
 
 interface DeckCard {
   card: ScryfallCard
@@ -99,11 +100,7 @@ export default function DeckBuilderPage() {
                   {commander && (
                     <div className="absolute -bottom-12 left-0 glass rounded-lg p-3 flex items-center gap-3 z-20">
                       <img
-                        src={
-                          commander.image_uris?.normal ||
-                          commander.card_faces?.[0]?.image_uris?.normal ||
-                          ''
-                        }
+                        src={getCardImageUrl(commander) || ''}
                         alt={commander.name}
                         className="w-8 h-10 object-cover rounded"
                       />
@@ -154,7 +151,7 @@ export default function DeckBuilderPage() {
 
                 <div className="divide-y divide-slate-700/30 max-h-96 overflow-y-auto">
                   {sortedCards.map(({ card, quantity }) => {
-                    const image = card.image_uris?.normal || card.card_faces?.[0]?.image_uris?.normal || ''
+                    const image = getCardImageUrl(card) || ''
 
                     return (
                       <div

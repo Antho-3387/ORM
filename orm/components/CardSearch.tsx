@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect } from 'react'
 import Image from 'next/image'
+import { getCardImageUrl } from '@/lib/card-image'
 
 export interface ScryfallCard {
   id: string
@@ -122,10 +123,8 @@ export function CardSearch({ onSelect, placeholder = 'Search cards...' }: CardSe
         <div className="absolute top-full left-0 right-0 mt-2 bg-slate-900/95 backdrop-blur border border-slate-700/50 rounded-lg shadow-xl z-50 max-h-96 overflow-y-auto">
           {results.map((card) => {
             const image =
-              card.image_uris?.small ||
-              card.image_uris?.normal ||
-              card.card_faces?.[0]?.image_uris?.small ||
-              card.card_faces?.[0]?.image_uris?.normal ||
+              getCardImageUrl(card, 'small') ||
+              getCardImageUrl(card, 'normal') ||
               ''
 
             return (

@@ -11,6 +11,7 @@
 
 import { supabase } from './supabase'
 import { searchCards, getCardById, ScryfallCard } from './scryfall'
+import { getCardImageUrl } from './card-image'
 
 // Cache en-mémoire (backend) - TTL 30 minutes
 const IN_MEMORY_CACHE = new Map<string, { data: any; timestamp: number }>()
@@ -41,7 +42,7 @@ export async function searchCardWithCache(
 
   // 2️⃣ CACHE HIT - Base de données (rapide, < 50ms)
   const cardFromDb = await getCardFromDatabase(normalizedQuery)
-  if (cardFromDb) {
+  if (cardFromDb?.imageUrl) {
     console.log(`✅ [CACHE HIT - DATABASE] ${query}`)
     
     // Mettre en cache en-mémoire
@@ -53,6 +54,15 @@ export async function searchCardWithCache(
     )
     
     return cardFromDb
+  }
+
+  if (cardFromDb?.scryfallId) {
+    const refreshedCard = await getCardById(cardFromDb.scryfallId)
+    if (refreshedCard && getCardImageUrl(refreshedCard)) {
+      const savedCard = await saveCacheCard(refreshedCard)
+      setInMemoryCache(normalizedQuery, savedCard)
+      return savedCard
+    }
   }
 
   // 3️⃣ CACHE MISS - Appel API externe
@@ -126,7 +136,7 @@ async function saveCacheCard(scryfallCard: ScryfallCard) {
         manaValue: scryfallCard.mana_value,
         colors: JSON.stringify(scryfallCard.colors || []),
         type: scryfallCard.type_line,
-        imageUrl: scryfallCard.image_uris?.normal,
+        imageUrl: getCardImageUrl(scryfallCard),
         source: 'scryfall',
         searchCount: 1,
       })
@@ -339,7 +349,7 @@ export async function saveMultipleCards(scryfallCards: ScryfallCard[]) {
       manaValue: card.mana_value,
       colors: JSON.stringify(card.colors || []),
       type: card.type_line,
-      imageUrl: card.image_uris?.normal,
+      imageUrl: getCardImageUrl(card),
       source: 'scryfall',
       searchCount: 1,
     }))

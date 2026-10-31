@@ -3,6 +3,7 @@
  */
 
 import { searchCards } from './scryfall'
+import { getCardImageUrl } from './card-image'
 
 interface CardInfo {
   quantity: number
@@ -92,8 +93,9 @@ async function fetchCardImageWithCache(cardName: string): Promise<string | undef
       results = await searchCards(cardName)
     }
     
-    if (results.length > 0 && results[0].image_uris?.normal) {
-      const imageUrl = results[0].image_uris.normal
+    if (results.length > 0) {
+      const imageUrl = getCardImageUrl(results[0])
+      if (!imageUrl) return undefined
       imageCache.set(cacheKey, imageUrl)
       return imageUrl
     }

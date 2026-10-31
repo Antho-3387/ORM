@@ -12,8 +12,17 @@ export interface ScryfallCard {
   colors?: string[]
   type_line: string
   image_uris?: {
-    normal: string
+    small?: string
+    normal?: string
+    large?: string
   }
+  card_faces?: Array<{
+    image_uris?: {
+      small?: string
+      normal?: string
+      large?: string
+    }
+  }>
   scryfall_uri: string
 }
 

@@ -471,15 +471,20 @@ function renderSearchResultsForDeck(cards) {
     return
   }
 
-  container.innerHTML = cards.slice(0, 12).map(card => `
+  container.innerHTML = cards.slice(0, 12).map(card => {
+    const image = card.image_uris?.normal ||
+      card.card_faces?.find(face => face.image_uris?.normal)?.image_uris?.normal
+
+    return `
     <div style="display: flex; flex-direction: column; align-items: center; cursor: pointer;" onclick="quickAddCardToDeck('${card.id}', '${card.name.replace(/'/g, "\\'")}')">
-      ${card.image_uris?.normal ? 
-        `<img src="${card.image_uris.normal}" alt="${card.name}" style="width: 100%; height: 150px; object-fit: cover; border-radius: 4px; border: 2px solid #7c3aed; margin-bottom: 5px;">` :
+      ${image ?
+        `<img src="${image}" alt="${card.name}" style="width: 100%; height: 150px; object-fit: cover; border-radius: 4px; border: 2px solid #7c3aed; margin-bottom: 5px;">` :
         '<div style="width: 100%; height: 150px; background: #333; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 0.8em; color: #999;">Pas d\'image</div>'
       }
       <div style="font-size: 0.75em; color: #00d4ff; text-align: center; word-break: break-word;">${card.name}</div>
     </div>
-  `).join('')
+  `
+  }).join('')
 }
 
 async function quickAddCardToDeck(cardId, cardName) {

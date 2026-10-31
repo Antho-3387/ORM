@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 
@@ -30,6 +31,7 @@ export function CardImage({
   onClick,
   stats,
 }: CardImageProps) {
+  const [imageError, setImageError] = useState(false)
   const colorArray = colors ? colors.split('') : []
 
   const getColorBg = (color: string) => {
@@ -49,13 +51,14 @@ export function CardImage({
       <div className="relative rounded-lg overflow-hidden border border-slate-600 hover:border-purple-400 transition-colors bg-slate-900 shadow-lg hover:shadow-xl hover:shadow-purple-500/20">
         {/* Image */}
         <div className="relative w-full h-48 bg-slate-800">
-          {imageUrl ? (
+          {imageUrl && !imageError ? (
             <Image
               src={imageUrl}
               alt={name}
               fill
               className="object-cover"
               sizes="(max-width: 768px) 100vw, 200px"
+              onError={() => setImageError(true)}
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-700 to-slate-900">

@@ -1,5 +1,6 @@
 import { supabase } from './supabase'
 import { searchCards as scryfallSearch } from './scryfall'
+import { getCardImageUrl } from './card-image'
 
 interface Card {
   id: string
@@ -18,6 +19,7 @@ interface ScryfallCard {
   mana_value?: number
   colors?: string[]
   image_uris?: { normal: string }
+  card_faces?: Array<{ image_uris?: { normal?: string } }>
 }
 
 // Cache en mémoire pour les cartes (TTL: 5 minutes)
@@ -35,7 +37,7 @@ function transformScryfallCard(scryfallCard: any): Card {
     type_line: scryfallCard.type_line,
     mana_value: scryfallCard.mana_value,
     colors: scryfallCard.colors ? JSON.stringify(scryfallCard.colors) : '',
-    image_url: scryfallCard.image_uris?.normal,
+    image_url: getCardImageUrl(scryfallCard),
   }
 }
 

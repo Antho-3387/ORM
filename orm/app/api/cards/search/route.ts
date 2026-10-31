@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 import { searchCards } from '@/lib/scryfall'
+import { getCardImageUrl } from '@/lib/card-image'
 
 // Interface pour une carte
 interface Card {
@@ -84,7 +85,7 @@ export async function GET(request: NextRequest) {
             .map((card: any) => ({
               id: card.id,
               name: card.name,
-              imageUrl: card.image_uris?.normal,
+              imageUrl: getCardImageUrl(card),
               type: card.type_line,
               manaValue: card.mana_value,
               colors: card.colors,

@@ -2,6 +2,7 @@
 
 import { FormEvent, useCallback, useEffect, useRef, useState } from 'react'
 import Image from 'next/image'
+import { getCardImageUrl } from '@/lib/card-image'
 
 interface ScryfallCard {
   id: string
@@ -207,7 +208,7 @@ export default function CardsGalleryPage() {
 
 function ScryfallCardTile({ card }: { card: ScryfallCard }) {
   const [imageError, setImageError] = useState(false)
-  const image = card.image_uris?.normal || card.card_faces?.[0]?.image_uris?.normal
+  const image = getCardImageUrl(card)
 
   return (
     <article className="overflow-hidden rounded-lg border border-slate-800 bg-slate-900">
